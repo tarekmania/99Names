@@ -66,7 +66,7 @@ export function GameGrid({ showArabic = true, showMeaning = false }: GameGridPro
       </div>
 
       <div 
-        className="grid grid-cols-6 sm:grid-cols-8 md:grid-cols-10 gap-2 sm:gap-3"
+        className="grid grid-cols-5 sm:grid-cols-7 md:grid-cols-9 lg:grid-cols-10 gap-3 sm:gap-4 md:gap-5"
         role="grid"
         aria-label="99 Names of Allah grid"
       >

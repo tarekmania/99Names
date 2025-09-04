@@ -36,7 +36,7 @@ export function Tile({
       <div 
         className={cn(
           "relative aspect-square rounded-lg border-2 transition-all duration-500 cursor-default",
-          "flex flex-col items-center justify-center p-2 min-h-[60px]",
+          "flex flex-col items-center justify-center p-2 sm:p-3 min-h-[70px] sm:min-h-[80px] md:min-h-[90px]",
           !shouldShow && "bg-muted border-border shadow-soft",
           isFound && "bg-success border-success text-success-foreground shadow-medium",
           isMissed && "bg-destructive border-destructive text-destructive-foreground shadow-medium",
