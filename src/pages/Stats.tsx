@@ -2,8 +2,11 @@ import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { ArrowLeft, Trophy, Target, Clock, Zap, TrendingUp, Calendar } from 'lucide-react';
+import { ArrowLeft, Trophy, Target, Clock, Zap, TrendingUp, Calendar, Share2 } from 'lucide-react';
 import { GameResult } from '@/store/game';
+import { StatsChart } from '@/components/StatsChart';
+import { useShare } from '@/hooks/useShare';
+import { db } from '@/utils/db';
 
 interface Stats {
   totalGames: number;
@@ -18,6 +21,7 @@ interface Stats {
 }
 
 export default function Stats() {
+  const { shareApp } = useShare();
   const [stats, setStats] = useState<Stats>({
     totalGames: 0,
     bestScore: 0,
@@ -31,8 +35,8 @@ export default function Stats() {
   });
 
   useEffect(() => {
-    // Load stats from localStorage
-    const results: GameResult[] = JSON.parse(localStorage.getItem('gameResults') || '[]');
+    const loadStats = async () => {
+      const results: GameResult[] = await db.getGameResults();
     
     if (results.length === 0) {
       return;
@@ -91,17 +95,20 @@ export default function Stats() {
       }
     }
 
-    setStats({
-      totalGames,
-      bestScore,
-      averageScore: Math.round(averageScore * 10) / 10,
-      bestTime,
-      totalTimePlayed,
-      averageAccuracy: Math.round(averageAccuracy),
-      currentStreak,
-      longestStreak: Math.max(longestStreak, 1),
-      recentGames: results.slice(-10).reverse(),
-    });
+      setStats({
+        totalGames,
+        bestScore,
+        averageScore: Math.round(averageScore * 10) / 10,
+        bestTime,
+        totalTimePlayed,
+        averageAccuracy: Math.round(averageAccuracy),
+        currentStreak,
+        longestStreak: Math.max(longestStreak, 1),
+        recentGames: results.slice(-10).reverse(),
+      });
+    };
+
+    loadStats();
   }, []);
 
   const formatTime = (ms: number) => {
@@ -132,12 +139,18 @@ export default function Stats() {
             </Link>
           </Button>
           
-          <Button asChild className="gap-2 bg-gradient-primary">
-            <Link to="/play">
-              <Target className="w-4 h-4" />
-              Play Game
-            </Link>
-          </Button>
+          <div className="flex gap-2">
+            <Button onClick={shareApp} variant="outline" className="gap-2">
+              <Share2 className="w-4 h-4" />
+              Share App
+            </Button>
+            <Button asChild className="gap-2 bg-gradient-primary">
+              <Link to="/play">
+                <Target className="w-4 h-4" />
+                Play Game
+              </Link>
+            </Button>
+          </div>
         </div>
 
         {/* Title */}
@@ -267,6 +280,9 @@ export default function Stats() {
                 </CardContent>
               </Card>
             </div>
+
+            {/* Progress Chart */}
+            <StatsChart results={stats.recentGames} />
 
             {/* Recent Games */}
             <Card className="shadow-medium">

@@ -1,6 +1,7 @@
 import { create } from 'zustand';
 import { NAMES } from '@/data/names';
 import { matchesName } from '@/utils/match';
+import { db } from '@/utils/db';
 
 export interface GameResult {
   timestamp: number;
@@ -70,10 +71,7 @@ export const useGameStore = create<GameState>((set, get) => ({
       const newFoundIds = new Set(state.foundIds);
       newFoundIds.add(matchedName.id);
       
-      // Haptic feedback for success
-      if ('vibrate' in navigator) {
-        navigator.vibrate(100);
-      }
+      // Feedback will be handled by components using hooks
 
       set({
         foundIds: newFoundIds,
@@ -89,10 +87,7 @@ export const useGameStore = create<GameState>((set, get) => ({
       }
     } else {
       // Wrong answer - show shake animation
-      if ('vibrate' in navigator) {
-        navigator.vibrate([50, 50, 50]);
-      }
-      
+      // Feedback will be handled by components using hooks
       set({
         submissions: state.submissions + 1,
         wrongInput: true,
@@ -112,10 +107,8 @@ export const useGameStore = create<GameState>((set, get) => ({
       completed: state.foundIds.size === 99,
     };
 
-    // Save to localStorage for now (will implement IndexedDB later)
-    const results = JSON.parse(localStorage.getItem('gameResults') || '[]');
-    results.push(result);
-    localStorage.setItem('gameResults', JSON.stringify(results));
+    // Save to IndexedDB with localStorage fallback
+    db.saveGameResult(result);
 
     set({
       isOver: true,

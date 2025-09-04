@@ -1,57 +1,13 @@
-import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
 import { ArrowLeft, Moon, Sun, Smartphone, Volume2, Eye, Info } from 'lucide-react';
-
-interface Settings {
-  darkMode: boolean;
-  showArabic: boolean;
-  showMeaning: boolean;
-  haptics: boolean;
-  soundEffects: boolean;
-}
+import { useSettings } from '@/hooks/useSettings';
 
 export default function Settings() {
-  const [settings, setSettings] = useState<Settings>({
-    darkMode: false,
-    showArabic: true,
-    showMeaning: true,
-    haptics: true,
-    soundEffects: true,
-  });
-
-  // Load settings from localStorage on mount
-  useEffect(() => {
-    const savedSettings = localStorage.getItem('gameSettings');
-    if (savedSettings) {
-      setSettings(JSON.parse(savedSettings));
-    }
-    
-    // Check system dark mode preference
-    const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
-    if (!savedSettings) {
-      setSettings(prev => ({ ...prev, darkMode: prefersDark }));
-    }
-  }, []);
-
-  // Save settings to localStorage and apply dark mode
-  useEffect(() => {
-    localStorage.setItem('gameSettings', JSON.stringify(settings));
-    
-    // Apply dark mode
-    if (settings.darkMode) {
-      document.documentElement.classList.add('dark');
-    } else {
-      document.documentElement.classList.remove('dark');
-    }
-  }, [settings]);
-
-  const updateSetting = (key: keyof Settings, value: boolean) => {
-    setSettings(prev => ({ ...prev, [key]: value }));
-  };
+  const { settings, updateSetting } = useSettings();
 
   return (
     <div className="min-h-screen bg-gradient-subtle">
@@ -171,14 +127,13 @@ export default function Settings() {
                   <div>
                     <Label className="text-sm font-medium">Sound Effects</Label>
                     <div className="text-xs text-muted-foreground">
-                      Audio feedback for game events (coming soon)
+                      Audio feedback for game events
                     </div>
                   </div>
                 </div>
                 <Switch
                   checked={settings.soundEffects}
                   onCheckedChange={(checked) => updateSetting('soundEffects', checked)}
-                  disabled={true}
                 />
               </div>
             </CardContent>
