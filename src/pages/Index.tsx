@@ -3,7 +3,7 @@
 import { Link } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Play, BookOpen, Settings, BarChart3, Star, Clock, Target } from 'lucide-react';
+import { Play, BookOpen, Settings, BarChart3, Star, Clock, Target, Calendar, GraduationCap } from 'lucide-react';
 
 const Index = () => {
   return (
@@ -24,15 +24,15 @@ const Index = () => {
             in this timed memory challenge. Can you recall all 99 names?
           </p>
 
-          <div className="flex flex-col sm:flex-row items-center justify-center gap-4 mb-12">
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-12 max-w-2xl mx-auto">
             <Button 
               asChild 
               size="lg" 
-              className="bg-gradient-primary hover:opacity-90 shadow-medium px-8 py-4 text-lg"
+              className="bg-gradient-primary hover:opacity-90 shadow-medium px-6 py-4"
             >
-              <Link to="/play" className="gap-3">
+              <Link to="/play" className="gap-2 flex-col h-20">
                 <Play className="w-6 h-6" />
-                Start Game
+                <span>Full Challenge</span>
               </Link>
             </Button>
 
@@ -40,11 +40,23 @@ const Index = () => {
               asChild 
               variant="outline" 
               size="lg"
-              className="px-8 py-4 text-lg"
+              className="px-6 py-4"
             >
-              <Link to="/how-to-play" className="gap-3">
-                <BookOpen className="w-6 h-6" />
-                How to Play
+              <Link to="/daily" className="gap-2 flex-col h-20">
+                <Calendar className="w-6 h-6" />
+                <span>Daily Practice</span>
+              </Link>
+            </Button>
+
+            <Button 
+              asChild 
+              variant="outline" 
+              size="lg"
+              className="px-6 py-4"
+            >
+              <Link to="/study" className="gap-2 flex-col h-20">
+                <GraduationCap className="w-6 h-6" />
+                <span>Study Mode</span>
               </Link>
             </Button>
           </div>
@@ -80,7 +92,7 @@ const Index = () => {
 
       {/* Navigation Cards */}
       <div className="container max-w-4xl mx-auto px-4 pb-16">
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
           <Card className="shadow-medium hover:shadow-strong transition-all duration-300 cursor-pointer group">
             <Link to="/stats" className="block">
               <CardHeader>
@@ -89,7 +101,7 @@ const Index = () => {
                     <BarChart3 className="w-6 h-6 text-primary" />
                   </div>
                   <div>
-                    <CardTitle>View Statistics</CardTitle>
+                    <CardTitle>Statistics</CardTitle>
                     <CardDescription>Track your progress and best scores</CardDescription>
                   </div>
                 </div>
@@ -107,6 +119,22 @@ const Index = () => {
                   <div>
                     <CardTitle>Settings</CardTitle>
                     <CardDescription>Customize your game experience</CardDescription>
+                  </div>
+                </div>
+              </CardHeader>
+            </Link>
+          </Card>
+
+          <Card className="shadow-medium hover:shadow-strong transition-all duration-300 cursor-pointer group">
+            <Link to="/how-to-play" className="block">
+              <CardHeader>
+                <div className="flex items-center space-x-3">
+                  <div className="p-2 bg-success/10 rounded-lg group-hover:bg-success/20 transition-colors">
+                    <BookOpen className="w-6 h-6 text-success" />
+                  </div>
+                  <div>
+                    <CardTitle>How to Play</CardTitle>
+                    <CardDescription>Learn the game rules and tips</CardDescription>
                   </div>
                 </div>
               </CardHeader>

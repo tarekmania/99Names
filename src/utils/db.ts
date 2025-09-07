@@ -1,11 +1,17 @@
 import { openDB, DBSchema, IDBPDatabase } from 'idb';
 import { GameResult } from '@/store/game';
+import { DailyResult } from '@/store/daily';
 
 interface GameDB extends DBSchema {
   gameResults: {
     key: number;
     value: GameResult;
     indexes: { 'by-timestamp': number; 'by-found': number; };
+  };
+  dailyResults: {
+    key: string;
+    value: DailyResult;
+    indexes: { 'by-date': string; };
   };
   settings: {
     key: string;
@@ -21,19 +27,29 @@ class DatabaseManager {
     if (this.isInitialized) return;
 
     try {
-      this.db = await openDB<GameDB>('99NamesMemoryDB', 1, {
-        upgrade(db) {
+      this.db = await openDB<GameDB>('99NamesMemoryDB', 2, {
+        upgrade(db, oldVersion) {
           // Create game results store
-          const resultsStore = db.createObjectStore('gameResults', {
-            keyPath: 'timestamp',
-          });
-          resultsStore.createIndex('by-timestamp', 'timestamp');
-          resultsStore.createIndex('by-found', 'found');
+          if (oldVersion < 1) {
+            const resultsStore = db.createObjectStore('gameResults', {
+              keyPath: 'timestamp',
+            });
+            resultsStore.createIndex('by-timestamp', 'timestamp');
+            resultsStore.createIndex('by-found', 'found');
 
-          // Create settings store
-          db.createObjectStore('settings', {
-            keyPath: 'key',
-          });
+            // Create settings store
+            db.createObjectStore('settings', {
+              keyPath: 'key',
+            });
+          }
+
+          // Create daily results store
+          if (oldVersion < 2) {
+            const dailyStore = db.createObjectStore('dailyResults', {
+              keyPath: 'date',
+            });
+            dailyStore.createIndex('by-date', 'date');
+          }
         },
       });
 
@@ -146,14 +162,53 @@ class DatabaseManager {
     return settings ? JSON.parse(settings) : null;
   }
 
+  async saveDailyResult(result: DailyResult): Promise<void> {
+    await this.init();
+    
+    if (this.db) {
+      try {
+        await this.db.put('dailyResults', result);
+        return;
+      } catch (error) {
+        console.warn('IndexedDB daily save failed, falling back to localStorage:', error);
+      }
+    }
+    
+    // Fallback to localStorage
+    const results = JSON.parse(localStorage.getItem('dailyResults') || '[]');
+    const existingIndex = results.findIndex((r: DailyResult) => r.date === result.date);
+    if (existingIndex >= 0) {
+      results[existingIndex] = result;
+    } else {
+      results.push(result);
+    }
+    localStorage.setItem('dailyResults', JSON.stringify(results));
+  }
+
+  async getDailyResults(): Promise<DailyResult[]> {
+    await this.init();
+    
+    if (this.db) {
+      try {
+        return await this.db.getAllFromIndex('dailyResults', 'by-date');
+      } catch (error) {
+        console.warn('IndexedDB daily read failed, falling back to localStorage:', error);
+      }
+    }
+    
+    // Fallback to localStorage
+    return JSON.parse(localStorage.getItem('dailyResults') || '[]');
+  }
+
   async clearAllData(): Promise<void> {
     await this.init();
     
     if (this.db) {
       try {
-        const tx = this.db.transaction(['gameResults', 'settings'], 'readwrite');
+        const tx = this.db.transaction(['gameResults', 'dailyResults', 'settings'], 'readwrite');
         await Promise.all([
           tx.objectStore('gameResults').clear(),
+          tx.objectStore('dailyResults').clear(),
           tx.objectStore('settings').clear(),
         ]);
         await tx.done;
@@ -165,6 +220,7 @@ class DatabaseManager {
     
     // Fallback to localStorage
     localStorage.removeItem('gameResults');
+    localStorage.removeItem('dailyResults');
     localStorage.removeItem('gameSettings');
   }
 }
