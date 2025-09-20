@@ -1,6 +1,8 @@
 import { create } from 'zustand';
 import { NAMES, DivineName } from '@/data/names';
 import { db } from '@/utils/db';
+import { fetchDivineNames } from '@/services/divineNamesApi';
+import { matchesName } from '@/utils/match';
 
 export interface DailyResult {
   date: string;
@@ -21,8 +23,11 @@ interface DailyState {
   currentStreak: number;
   bestStreak: number;
   todayCompleted: boolean;
+  allNames: DivineName[];
+  isLoading: boolean;
   
   // Actions
+  loadNames: () => Promise<void>;
   startDaily: () => void;
   submitGuess: (guess: string) => boolean;
   tick: () => void;
@@ -32,11 +37,11 @@ interface DailyState {
 }
 
 // Generate daily names using date-based seeding
-function getDailyNames(date: Date = new Date()): DivineName[] {
+function getDailyNames(allNames: DivineName[], date: Date = new Date()): DivineName[] {
   const dateStr = date.toISOString().split('T')[0];
   const seed = dateStr.split('-').reduce((acc, part) => acc + parseInt(part), 0);
   
-  const shuffled = [...NAMES];
+  const shuffled = [...allNames];
   let currentIndex = shuffled.length;
   let randomSeed = seed;
   
@@ -60,10 +65,24 @@ export const useDailyStore = create<DailyState>((set, get) => ({
   currentStreak: 0,
   bestStreak: 0,
   todayCompleted: false,
+  allNames: [],
+  isLoading: false,
+
+  loadNames: async () => {
+    set({ isLoading: true });
+    try {
+      const allNames = await fetchDivineNames();
+      set({ allNames, isLoading: false });
+    } catch (error) {
+      console.error('Failed to load names:', error);
+      set({ allNames: NAMES, isLoading: false });
+    }
+  },
 
   startDaily: async () => {
+    const { allNames } = get();
     const today = new Date().toISOString().split('T')[0];
-    const dailyNames = getDailyNames();
+    const dailyNames = getDailyNames(allNames);
     
     // Check if already completed today
     const results = await db.getDailyResults();

@@ -1,5 +1,4 @@
 import { useEffect, useState } from 'react';
-import { NAMES } from '@/data/names';
 import { useGameStore } from '@/store/game';
 import { Tile } from './Tile';
 
@@ -9,7 +8,7 @@ interface GameGridProps {
 }
 
 export function GameGrid({ showArabic = true, showMeaning = false }: GameGridProps) {
-  const { foundIds, isOver, recentMatch, clearFeedback } = useGameStore();
+  const { foundIds, isOver, recentMatch, clearFeedback, names } = useGameStore();
   const [announcedName, setAnnouncedName] = useState<string>('');
 
   // Clear recent match feedback after animation
@@ -23,7 +22,7 @@ export function GameGrid({ showArabic = true, showMeaning = false }: GameGridPro
   // ARIA announcements for found names
   useEffect(() => {
     if (recentMatch) {
-      const name = NAMES.find(n => n.id === recentMatch);
+      const name = names.find(n => n.id === recentMatch);
       if (name) {
         const announcement = `Found: ${name.englishName} (${name.arabic})`;
         setAnnouncedName(announcement);
@@ -33,12 +32,12 @@ export function GameGrid({ showArabic = true, showMeaning = false }: GameGridPro
         return () => clearTimeout(timer);
       }
     }
-  }, [recentMatch]);
+  }, [recentMatch, names]);
 
   // Create grid with empty cells to make it 10x10
   const gridItems = Array.from({ length: 100 }, (_, index) => {
-    if (index < 99) {
-      const name = NAMES[index];
+    if (index < names.length) {
+      const name = names[index];
       return (
         <Tile
           key={name.id}
@@ -82,7 +81,7 @@ export function GameGrid({ showArabic = true, showMeaning = false }: GameGridPro
           {isOver && (
             <span className="flex items-center space-x-2">
               <div className="w-3 h-3 bg-destructive rounded"></div>
-              <span>Missed ({99 - foundIds.size})</span>
+              <span>Missed ({names.length - foundIds.size})</span>
             </span>
           )}
         </div>

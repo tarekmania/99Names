@@ -1,7 +1,9 @@
 import { create } from 'zustand';
 import { NAMES } from '@/data/names';
+import type { DivineName } from '@/data/names';
 import { matchesName } from '@/utils/match';
 import { db } from '@/utils/db';
+import { fetchDivineNames } from '@/services/divineNamesApi';
 
 export interface GameResult {
   timestamp: number;
@@ -18,10 +20,13 @@ interface GameState {
   input: string;
   isPlaying: boolean;
   startTime: number;
-  recentMatch: number | null; // For showing feedback
-  wrongInput: boolean; // For shake animation
+  recentMatch: number | null;
+  wrongInput: boolean;
+  names: DivineName[];
+  isLoading: boolean;
   
   // Actions
+  loadNames: () => Promise<void>;
   startGame: () => void;
   submitGuess: () => void;
   revealNow: () => void;
@@ -43,6 +48,19 @@ export const useGameStore = create<GameState>((set, get) => ({
   startTime: 0,
   recentMatch: null,
   wrongInput: false,
+  names: [],
+  isLoading: false,
+
+  loadNames: async () => {
+    set({ isLoading: true });
+    try {
+      const names = await fetchDivineNames();
+      set({ names, isLoading: false });
+    } catch (error) {
+      console.error('Failed to load names:', error);
+      set({ names: NAMES, isLoading: false });
+    }
+  },
 
   startGame: () => {
     set({
@@ -63,7 +81,7 @@ export const useGameStore = create<GameState>((set, get) => ({
     if (!state.isPlaying || state.isOver || !state.input.trim()) return;
 
     const input = state.input.trim();
-    const matchedName = NAMES.find(name => 
+    const matchedName = state.names.find(name => 
       !state.foundIds.has(name.id) && matchesName(input, name)
     );
 
@@ -71,8 +89,6 @@ export const useGameStore = create<GameState>((set, get) => ({
       const newFoundIds = new Set(state.foundIds);
       newFoundIds.add(matchedName.id);
       
-      // Feedback will be handled by components using hooks
-
       set({
         foundIds: newFoundIds,
         submissions: state.submissions + 1,
@@ -82,12 +98,10 @@ export const useGameStore = create<GameState>((set, get) => ({
       });
 
       // Check if all names found
-      if (newFoundIds.size === 99) {
+      if (newFoundIds.size === state.names.length) {
         get().revealNow();
       }
     } else {
-      // Wrong answer - show shake animation
-      // Feedback will be handled by components using hooks
       set({
         submissions: state.submissions + 1,
         wrongInput: true,
@@ -104,10 +118,9 @@ export const useGameStore = create<GameState>((set, get) => ({
       timestamp: Date.now(),
       found: state.foundIds.size,
       durationMs,
-      completed: state.foundIds.size === 99,
+      completed: state.foundIds.size === state.names.length,
     };
 
-    // Save to IndexedDB with localStorage fallback
     db.saveGameResult(result);
 
     set({

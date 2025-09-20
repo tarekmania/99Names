@@ -24,6 +24,9 @@ const Daily = () => {
     currentStreak,
     bestStreak,
     todayCompleted,
+    allNames,
+    isLoading,
+    loadNames,
     startDaily,
     submitGuess,
     tick,
@@ -47,10 +50,17 @@ const Daily = () => {
     return () => clearInterval(timer);
   }, [isActive, isCompleted, tick]);
 
+  // Load names on component mount
+  useEffect(() => {
+    loadNames();
+  }, [loadNames]);
+
   // Initialize daily challenge
   useEffect(() => {
-    startDaily();
-  }, [startDaily]);
+    if (allNames.length > 0) {
+      startDaily();
+    }
+  }, [startDaily, allNames.length]);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();

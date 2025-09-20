@@ -18,6 +18,9 @@ export default function Play() {
     foundIds,
     submissions,
     wrongInput,
+    names,
+    isLoading,
+    loadNames,
     startGame,
     submitGuess,
     revealNow,
@@ -25,15 +28,17 @@ export default function Play() {
     clearFeedback,
   } = useGameStore();
 
-  // Auto-focus input and start game when component mounts
+  // Load names and auto-focus input and start game when component mounts
   useEffect(() => {
-    if (!isPlaying && !isOver) {
-      startGame();
-    }
-    if (inputRef.current) {
-      inputRef.current.focus();
-    }
-  }, [isPlaying, isOver, startGame]);
+    loadNames().then(() => {
+      if (!isPlaying && !isOver) {
+        startGame();
+      }
+      if (inputRef.current) {
+        inputRef.current.focus();
+      }
+    });
+  }, [isPlaying, isOver, startGame, loadNames]);
 
   // Navigate to end summary when game is over
   useEffect(() => {
@@ -62,6 +67,17 @@ export default function Play() {
 
   const accuracy = submissions > 0 ? Math.round((foundIds.size / submissions) * 100) : 0;
 
+  if (isLoading) {
+    return (
+      <div className="min-h-screen bg-gradient-subtle flex items-center justify-center">
+        <div className="text-center">
+          <div className="text-xl font-semibold mb-2">Loading Divine Names...</div>
+          <div className="text-muted-foreground">Fetching authentic Arabic text...</div>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="min-h-screen bg-background">
       {/* Header with timer and back button */}
@@ -82,7 +98,7 @@ export default function Play() {
             
             <div className="flex items-center space-x-4 text-sm">
               <span className="text-muted-foreground">
-                Progress: <span className="font-semibold text-foreground">{foundIds.size}/99</span>
+                Progress: <span className="font-semibold text-foreground">{foundIds.size}/{names.length}</span>
               </span>
             </div>
           </div>
