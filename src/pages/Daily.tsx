@@ -314,10 +314,13 @@ const Daily = () => {
           </div>
         </div>
 
-        {/* Names Grid (shown after completion or during practice) */}
-        {names.length > 0 && (isCompleted || found.size > 0) && (
+        {/* Names Grid - Always shown so users know what to guess */}
+        {names.length > 0 && (
           <div className="mt-12">
             <h3 className="text-xl font-semibold mb-6 text-center">Today's Names</h3>
+            <p className="text-center text-muted-foreground mb-6">
+              Find all {names.length} names below by typing them in the input field above
+            </p>
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
               {names.map((name) => (
                 <Link key={name.id} to={`/study/${name.id}`}>
