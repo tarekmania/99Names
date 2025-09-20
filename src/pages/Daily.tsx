@@ -314,13 +314,74 @@ const Daily = () => {
           </div>
         </div>
 
-        {/* Names Grid - Always shown so users know what to guess */}
-        {names.length > 0 && (
+        {/* Hint System - Progressive clues */}
+        {names.length > 0 && isActive && !isCompleted && (
+          <div className="mt-12">
+            <div className="text-center mb-8">
+              <h3 className="text-xl font-semibold mb-4">Daily Challenge Hints</h3>
+              <p className="text-muted-foreground mb-6">
+                Use your memory and these hints to find all {names.length} names
+              </p>
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 max-w-4xl mx-auto">
+                {names.map((name, index) => {
+                  const isFound = found.has(name.id);
+                  const progress = Math.floor((5 * 60 - timeLeft) / 30); // Hint level based on time elapsed
+                  
+                  return (
+                    <div 
+                      key={name.id}
+                      className={`p-4 rounded-lg border transition-all duration-300 ${
+                        isFound 
+                          ? 'bg-primary/10 border-primary text-primary' 
+                          : 'bg-card border-border'
+                      }`}
+                    >
+                      <div className="text-center space-y-2">
+                        <div className="text-sm font-medium">#{name.id}</div>
+                        
+                        {/* Progressive Hints */}
+                        {progress >= 0 && (
+                          <div className="text-sm text-muted-foreground">
+                            {name.meanings.split(',')[0]}
+                          </div>
+                        )}
+                        
+                        {progress >= 2 && (
+                          <div className="text-xs text-muted-foreground">
+                            {name.englishName.length} letters
+                          </div>
+                        )}
+                        
+                        {progress >= 4 && (
+                          <div className="text-xs font-mono">
+                            {name.englishName.charAt(0)}___
+                          </div>
+                        )}
+                        
+                        {progress >= 6 && (
+                          <div className="text-xs font-mono">
+                            {name.englishName.slice(0, Math.floor(name.englishName.length / 2))}___
+                          </div>
+                        )}
+                        
+                        {isFound && (
+                          <div className="font-semibold text-primary">
+                            {name.englishName}
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Names Grid - Only shown after completion */}
+        {names.length > 0 && (isCompleted || todayCompleted) && (
           <div className="mt-12">
             <h3 className="text-xl font-semibold mb-6 text-center">Today's Names</h3>
-            <p className="text-center text-muted-foreground mb-6">
-              Find all {names.length} names below by typing them in the input field above
-            </p>
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
               {names.map((name) => (
                 <Link key={name.id} to={`/study/${name.id}`}>
