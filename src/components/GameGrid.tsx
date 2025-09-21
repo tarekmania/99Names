@@ -21,23 +21,13 @@ export function GameGrid({ showArabic = true, showMeaning = false }: GameGridPro
     }
   }, [recentMatch, clearFeedback]);
 
-  // ARIA announcements and scroll-to-match for found names
+  // ARIA announcements for found names
   useEffect(() => {
     if (recentMatch) {
       const name = names.find(n => n.id === recentMatch);
       if (name) {
         const announcement = `Found: ${name.englishName} (${name.arabic})`;
         setAnnouncedName(announcement);
-        
-        // Scroll to the matched tile
-        const tileElement = tileRefs.current.get(recentMatch);
-        if (tileElement && gridRef.current) {
-          tileElement.scrollIntoView({
-            behavior: 'smooth',
-            block: 'center',
-            inline: 'nearest'
-          });
-        }
         
         // Clear announcement after screen reader reads it
         const timer = setTimeout(() => setAnnouncedName(''), 2000);
