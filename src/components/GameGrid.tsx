@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import { useGameStore } from '@/store/game';
 import { Tile } from './Tile';
 
@@ -10,6 +10,8 @@ interface GameGridProps {
 export function GameGrid({ showArabic = true, showMeaning = false }: GameGridProps) {
   const { foundIds, isOver, recentMatch, clearFeedback, names } = useGameStore();
   const [announcedName, setAnnouncedName] = useState<string>('');
+  const gridRef = useRef<HTMLDivElement>(null);
+  const tileRefs = useRef<Map<number, HTMLDivElement>>(new Map());
 
   // Clear recent match feedback after animation
   useEffect(() => {
@@ -19,13 +21,23 @@ export function GameGrid({ showArabic = true, showMeaning = false }: GameGridPro
     }
   }, [recentMatch, clearFeedback]);
 
-  // ARIA announcements for found names
+  // ARIA announcements and scroll-to-match for found names
   useEffect(() => {
     if (recentMatch) {
       const name = names.find(n => n.id === recentMatch);
       if (name) {
         const announcement = `Found: ${name.englishName} (${name.arabic})`;
         setAnnouncedName(announcement);
+        
+        // Scroll to the matched tile
+        const tileElement = tileRefs.current.get(recentMatch);
+        if (tileElement && gridRef.current) {
+          tileElement.scrollIntoView({
+            behavior: 'smooth',
+            block: 'center',
+            inline: 'nearest'
+          });
+        }
         
         // Clear announcement after screen reader reads it
         const timer = setTimeout(() => setAnnouncedName(''), 2000);
@@ -41,6 +53,13 @@ export function GameGrid({ showArabic = true, showMeaning = false }: GameGridPro
       return (
         <Tile
           key={name.id}
+          ref={(el) => {
+            if (el) {
+              tileRefs.current.set(name.id, el);
+            } else {
+              tileRefs.current.delete(name.id);
+            }
+          }}
           name={name}
           isFound={foundIds.has(name.id)}
           isRevealed={isOver}
@@ -65,6 +84,7 @@ export function GameGrid({ showArabic = true, showMeaning = false }: GameGridPro
       </div>
 
       <div 
+        ref={gridRef}
         className="grid grid-cols-5 sm:grid-cols-7 md:grid-cols-9 lg:grid-cols-10 gap-3 sm:gap-4 md:gap-5"
         role="grid"
         aria-label="99 Names of Allah grid"

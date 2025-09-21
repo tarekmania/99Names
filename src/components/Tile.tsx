@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, forwardRef } from 'react';
 import { DivineName } from '@/data/names';
 import { cn } from '@/lib/utils';
 
@@ -11,14 +11,14 @@ interface TileProps {
   isRecentMatch?: boolean;
 }
 
-export function Tile({ 
+export const Tile = forwardRef<HTMLDivElement, TileProps>(({ 
   name, 
   isFound, 
   isRevealed, 
   showArabic = true, 
   showMeaning = false,
   isRecentMatch = false 
-}: TileProps) {
+}, ref) => {
   const [showTooltip, setShowTooltip] = useState(false);
 
   const handleLongPress = () => {
@@ -32,7 +32,7 @@ export function Tile({
   const isMissed = isRevealed && !isFound;
 
   return (
-    <div className="relative">
+    <div className="relative" ref={ref}>
       <div 
         className={cn(
           "relative aspect-square rounded-lg border-2 transition-all duration-500 cursor-default",
@@ -77,4 +77,4 @@ export function Tile({
       )}
     </div>
   );
-}
+});

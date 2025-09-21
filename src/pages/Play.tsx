@@ -3,9 +3,11 @@ import { useNavigate } from 'react-router-dom';
 import { useGameStore } from '@/store/game';
 import { Timer } from '@/components/Timer';
 import { GameGrid } from '@/components/GameGrid';
+import { StatusMessage } from '@/components/StatusMessage';
+import { ProgressBar } from '@/components/ProgressBar';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { ArrowLeft, Eye, Send } from 'lucide-react';
+import { ArrowLeft, Eye, Send, Trophy } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 export default function Play() {
@@ -18,6 +20,8 @@ export default function Play() {
     foundIds,
     submissions,
     wrongInput,
+    statusMessage,
+    recentFoundName,
     names,
     isLoading,
     loadNames,
@@ -26,6 +30,7 @@ export default function Play() {
     revealNow,
     setInput,
     clearFeedback,
+    clearStatusMessage,
   } = useGameStore();
 
   // Load names and auto-focus input and start game when component mounts
@@ -50,10 +55,10 @@ export default function Play() {
     }
   }, [isOver, navigate]);
 
-  // Clear wrong input feedback
+  // Clear wrong input feedback with improved animation duration
   useEffect(() => {
     if (wrongInput) {
-      const timer = setTimeout(clearFeedback, 500);
+      const timer = setTimeout(clearFeedback, 1000);
       return () => clearTimeout(timer);
     }
   }, [wrongInput, clearFeedback]);
@@ -66,6 +71,8 @@ export default function Play() {
   };
 
   const accuracy = submissions > 0 ? Math.round((foundIds.size / submissions) * 100) : 0;
+  const successfulFinds = foundIds.size;
+  const failedAttempts = submissions - foundIds.size;
 
   if (isLoading) {
     return (
@@ -96,10 +103,12 @@ export default function Play() {
             
             <Timer />
             
-            <div className="flex items-center space-x-4 text-sm">
-              <span className="text-muted-foreground">
-                Progress: <span className="font-semibold text-foreground">{foundIds.size}/{names.length}</span>
-              </span>
+            <div className="flex flex-col items-end space-y-2">
+              <div className="flex items-center space-x-2 text-sm">
+                <Trophy className="w-4 h-4 text-primary" />
+                <span className="font-semibold text-foreground">{foundIds.size}/{names.length}</span>
+              </div>
+              <ProgressBar current={foundIds.size} total={names.length} className="w-24" />
             </div>
           </div>
         </div>
@@ -120,7 +129,8 @@ export default function Play() {
                   disabled={isOver}
                   className={cn(
                     "text-lg transition-all duration-300",
-                    wrongInput && "animate-pulse border-destructive"
+                    wrongInput && "animate-[shake_0.5s_ease-in-out] border-destructive shadow-destructive/20 shadow-md",
+                    recentFoundName && "border-success shadow-success/20 shadow-md"
                   )}
                   aria-label="Enter the name of Allah"
                 />
@@ -135,18 +145,32 @@ export default function Play() {
                 <span className="sr-only">Submit guess</span>
               </Button>
             </div>
+            
+            {/* Status Message */}
+            <StatusMessage
+              type={statusMessage?.type || null}
+              message={statusMessage?.text || ''}
+              onClear={clearStatusMessage}
+            />
           </form>
 
-          {/* Stats and reveal button */}
-          <div className="flex items-center justify-center space-x-6 mt-4 text-sm">
-            <span className="text-muted-foreground">
-              Submissions: <span className="font-semibold text-foreground">{submissions}</span>
-            </span>
-            {submissions > 0 && (
+          {/* Enhanced Stats and reveal button */}
+          <div className="flex flex-wrap items-center justify-center gap-4 mt-6 text-sm">
+            <div className="flex items-center space-x-4 bg-card rounded-lg px-4 py-2 border">
               <span className="text-muted-foreground">
-                Accuracy: <span className="font-semibold text-foreground">{accuracy}%</span>
+                ✅ Found: <span className="font-semibold text-success">{successfulFinds}</span>
               </span>
-            )}
+              {failedAttempts > 0 && (
+                <span className="text-muted-foreground">
+                  ❌ Missed: <span className="font-semibold text-destructive">{failedAttempts}</span>
+                </span>
+              )}
+              {submissions > 0 && (
+                <span className="text-muted-foreground">
+                  🎯 Accuracy: <span className="font-semibold text-primary">{accuracy}%</span>
+                </span>
+              )}
+            </div>
             <Button
               variant="outline"
               size="sm"

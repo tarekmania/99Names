@@ -21,7 +21,9 @@ interface GameState {
   isPlaying: boolean;
   startTime: number;
   recentMatch: number | null;
+  recentFoundName: string | null;
   wrongInput: boolean;
+  statusMessage: { type: 'success' | 'error' | 'warning' | null; text: string } | null;
   names: DivineName[];
   isLoading: boolean;
   
@@ -34,6 +36,7 @@ interface GameState {
   restart: () => void;
   setInput: (input: string) => void;
   clearFeedback: () => void;
+  clearStatusMessage: () => void;
 }
 
 const GAME_DURATION_MS = 13 * 60 * 1000; // 13 minutes
@@ -47,7 +50,9 @@ export const useGameStore = create<GameState>((set, get) => ({
   isPlaying: false,
   startTime: 0,
   recentMatch: null,
+  recentFoundName: null,
   wrongInput: false,
+  statusMessage: null,
   names: [],
   isLoading: false,
 
@@ -72,7 +77,9 @@ export const useGameStore = create<GameState>((set, get) => ({
       isPlaying: true,
       startTime: Date.now(),
       recentMatch: null,
+      recentFoundName: null,
       wrongInput: false,
+      statusMessage: null,
     });
   },
 
@@ -94,7 +101,12 @@ export const useGameStore = create<GameState>((set, get) => ({
         submissions: state.submissions + 1,
         input: '',
         recentMatch: matchedName.id,
+        recentFoundName: matchedName.englishName,
         wrongInput: false,
+        statusMessage: {
+          type: 'success',
+          text: `✅ Found: ${matchedName.englishName}!`
+        }
       });
 
       // Check if all names found
@@ -102,9 +114,20 @@ export const useGameStore = create<GameState>((set, get) => ({
         get().revealNow();
       }
     } else {
+      // Check if it's a duplicate attempt
+      const isDuplicate = state.names.some(name => 
+        state.foundIds.has(name.id) && 
+        (name.englishName.toLowerCase().includes(input.toLowerCase()) || 
+         name.aliases.some(alias => alias.toLowerCase().includes(input.toLowerCase())))
+      );
+      
       set({
         submissions: state.submissions + 1,
         wrongInput: true,
+        statusMessage: {
+          type: isDuplicate ? 'warning' : 'error',
+          text: isDuplicate ? '⚠️ Already found!' : '❌ Not found - try another name'
+        }
       });
     }
   },
@@ -153,7 +176,9 @@ export const useGameStore = create<GameState>((set, get) => ({
       isPlaying: false,
       startTime: 0,
       recentMatch: null,
+      recentFoundName: null,
       wrongInput: false,
+      statusMessage: null,
     });
   },
 
@@ -162,6 +187,10 @@ export const useGameStore = create<GameState>((set, get) => ({
   },
 
   clearFeedback: () => {
-    set({ recentMatch: null, wrongInput: false });
+    set({ recentMatch: null, recentFoundName: null, wrongInput: false });
+  },
+
+  clearStatusMessage: () => {
+    set({ statusMessage: null });
   },
 }));
