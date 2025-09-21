@@ -17,6 +17,9 @@ interface ApiResponse {
 
 export async function fetchDivineNames(): Promise<DivineName[]> {
   try {
+    // Load static data for aliases
+    const { NAMES: staticNames } = await import('../data/names');
+    
     const response = await fetch('https://api.aladhan.com/v1/asmaAlHusna');
     
     if (!response.ok) {
@@ -25,23 +28,27 @@ export async function fetchDivineNames(): Promise<DivineName[]> {
     
     const result: ApiResponse = await response.json();
     
-    if (result.code !== 200 || !result.data) {
+    if (result.code !== 200 || !result.data || result.data.length !== 99) {
       throw new Error('API returned invalid data');
     }
     
-    // Transform API data to match our DivineName interface
-    return result.data.map((apiName): DivineName => ({
-      id: apiName.number,
-      arabic: apiName.name,
-      englishName: apiName.transliteration,
-      meanings: apiName.en.meaning,
-      aliases: [] // API doesn't provide aliases, so we use empty array
-    }));
+    // Merge API data with static aliases - both have 99 names in same order
+    return result.data.map((apiName): DivineName => {
+      const staticName = staticNames.find(name => name.id === apiName.number);
+      
+      return {
+        id: apiName.number,
+        arabic: apiName.name, // Use authentic Arabic from API
+        englishName: apiName.transliteration,
+        meanings: apiName.en.meaning, // Use API meanings
+        aliases: staticName?.aliases || [] // Preserve our comprehensive aliases
+      };
+    });
     
   } catch (error) {
     console.error('Failed to fetch divine names from API:', error);
     
-    // Fallback to our static data if API fails
+    // Fallback to our static data with full aliases if API fails
     const { NAMES } = await import('../data/names');
     return NAMES;
   }
