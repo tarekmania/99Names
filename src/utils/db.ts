@@ -17,16 +17,6 @@ interface GameDB extends DBSchema {
     key: string;
     value: any;
   };
-  spacedRepetitionItems: {
-    key: number;
-    value: any;
-    indexes: { 'by-next-review': string; };
-  };
-  spacedRepetitionResults: {
-    key: number;
-    value: any;
-    indexes: { 'by-timestamp': number; };
-  };
 }
 
 class DatabaseManager {
@@ -37,7 +27,7 @@ class DatabaseManager {
     if (this.isInitialized) return;
 
     try {
-      this.db = await openDB<GameDB>('99NamesMemoryDB', 3, {
+      this.db = await openDB<GameDB>('99NamesMemoryDB', 2, {
         upgrade(db, oldVersion) {
           // Create game results store
           if (oldVersion < 1) {
@@ -59,19 +49,6 @@ class DatabaseManager {
               keyPath: 'date',
             });
             dailyStore.createIndex('by-date', 'date');
-          }
-
-          // Create spaced repetition stores
-          if (oldVersion < 3) {
-            const spacedRepetitionItemsStore = db.createObjectStore('spacedRepetitionItems', {
-              keyPath: 'id',
-            });
-            spacedRepetitionItemsStore.createIndex('by-next-review', 'nextReviewDate');
-
-            const spacedRepetitionResultsStore = db.createObjectStore('spacedRepetitionResults', {
-              keyPath: 'timestamp',
-            });
-            spacedRepetitionResultsStore.createIndex('by-timestamp', 'timestamp');
           }
         },
       });
@@ -223,89 +200,16 @@ class DatabaseManager {
     return JSON.parse(localStorage.getItem('dailyResults') || '[]');
   }
 
-  async saveSpacedRepetitionItem(item: any): Promise<void> {
-    await this.init();
-    
-    if (this.db) {
-      try {
-        await this.db.put('spacedRepetitionItems', item);
-        return;
-      } catch (error) {
-        console.warn('IndexedDB spaced repetition save failed, falling back to localStorage:', error);
-      }
-    }
-    
-    // Fallback to localStorage
-    const items = JSON.parse(localStorage.getItem('spacedRepetitionItems') || '[]');
-    const existingIndex = items.findIndex((i: any) => i.id === item.id);
-    if (existingIndex >= 0) {
-      items[existingIndex] = item;
-    } else {
-      items.push(item);
-    }
-    localStorage.setItem('spacedRepetitionItems', JSON.stringify(items));
-  }
-
-  async getSpacedRepetitionItems(): Promise<any[]> {
-    await this.init();
-    
-    if (this.db) {
-      try {
-        return await this.db.getAll('spacedRepetitionItems');
-      } catch (error) {
-        console.warn('IndexedDB spaced repetition read failed, falling back to localStorage:', error);
-      }
-    }
-    
-    // Fallback to localStorage
-    return JSON.parse(localStorage.getItem('spacedRepetitionItems') || '[]');
-  }
-
-  async saveSpacedRepetitionResult(result: any): Promise<void> {
-    await this.init();
-    
-    if (this.db) {
-      try {
-        await this.db.put('spacedRepetitionResults', result);
-        return;
-      } catch (error) {
-        console.warn('IndexedDB spaced repetition result save failed, falling back to localStorage:', error);
-      }
-    }
-    
-    // Fallback to localStorage
-    const results = JSON.parse(localStorage.getItem('spacedRepetitionResults') || '[]');
-    results.push(result);
-    localStorage.setItem('spacedRepetitionResults', JSON.stringify(results));
-  }
-
-  async getSpacedRepetitionResults(): Promise<any[]> {
-    await this.init();
-    
-    if (this.db) {
-      try {
-        return await this.db.getAllFromIndex('spacedRepetitionResults', 'by-timestamp');
-      } catch (error) {
-        console.warn('IndexedDB spaced repetition results read failed, falling back to localStorage:', error);
-      }
-    }
-    
-    // Fallback to localStorage
-    return JSON.parse(localStorage.getItem('spacedRepetitionResults') || '[]');
-  }
-
   async clearAllData(): Promise<void> {
     await this.init();
     
     if (this.db) {
       try {
-        const tx = this.db.transaction(['gameResults', 'dailyResults', 'settings', 'spacedRepetitionItems', 'spacedRepetitionResults'], 'readwrite');
+        const tx = this.db.transaction(['gameResults', 'dailyResults', 'settings'], 'readwrite');
         await Promise.all([
           tx.objectStore('gameResults').clear(),
           tx.objectStore('dailyResults').clear(),
           tx.objectStore('settings').clear(),
-          tx.objectStore('spacedRepetitionItems').clear(),
-          tx.objectStore('spacedRepetitionResults').clear(),
         ]);
         await tx.done;
         return;
@@ -318,8 +222,6 @@ class DatabaseManager {
     localStorage.removeItem('gameResults');
     localStorage.removeItem('dailyResults');
     localStorage.removeItem('gameSettings');
-    localStorage.removeItem('spacedRepetitionItems');
-    localStorage.removeItem('spacedRepetitionResults');
   }
 }
 
