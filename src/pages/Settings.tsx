@@ -3,7 +3,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
-import { ArrowLeft, Moon, Sun, Smartphone, Volume2, Eye, Info } from 'lucide-react';
+import { ArrowLeft, Moon, Sun, Smartphone, Volume2, Eye, Info, Heart } from 'lucide-react';
 import { useSettings } from '@/hooks/useSettings';
 
 export default function Settings() {
@@ -134,6 +134,22 @@ export default function Settings() {
                 <Switch
                   checked={settings.soundEffects}
                   onCheckedChange={(checked) => updateSetting('soundEffects', checked)}
+                />
+              </div>
+
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  <Heart className="w-4 h-4" />
+                  <div>
+                    <Label className="text-sm font-medium">Bismillah Reminder</Label>
+                    <div className="text-xs text-muted-foreground">
+                      Show a reminder to begin with "Bismillah" before starting sessions
+                    </div>
+                  </div>
+                </div>
+                <Switch
+                  checked={settings.bismillahReminder}
+                  onCheckedChange={(checked) => updateSetting('bismillahReminder', checked)}
                 />
               </div>
             </CardContent>

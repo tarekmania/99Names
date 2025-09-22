@@ -1,18 +1,24 @@
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useGameStore } from '@/store/game';
 import { Timer } from '@/components/Timer';
 import { GameGrid } from '@/components/GameGrid';
 import { StatusMessage } from '@/components/StatusMessage';
 import { ProgressBar } from '@/components/ProgressBar';
+import { BismillahReminder } from '@/components/BismillahReminder';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { ArrowLeft, Eye, Send, Trophy } from 'lucide-react';
+import { useSettings } from '@/hooks/useSettings';
 import { cn } from '@/lib/utils';
 
 export default function Play() {
   const navigate = useNavigate();
   const inputRef = useRef<HTMLInputElement>(null);
+  const { settings } = useSettings();
+  const [showBismillahReminder, setShowBismillahReminder] = useState(false);
+  const [readyToStart, setReadyToStart] = useState(false);
+  
   const {
     isPlaying,
     isOver,
@@ -36,14 +42,19 @@ export default function Play() {
   // Load names and auto-focus input and start game when component mounts
   useEffect(() => {
     loadNames().then(() => {
-      if (!isPlaying && !isOver) {
-        startGame();
+      if (!isPlaying && !isOver && !readyToStart) {
+        if (settings.bismillahReminder) {
+          setShowBismillahReminder(true);
+        } else {
+          startGame();
+          setReadyToStart(true);
+        }
       }
       if (inputRef.current) {
         inputRef.current.focus();
       }
     });
-  }, [isPlaying, isOver, startGame, loadNames]);
+  }, [isPlaying, isOver, startGame, loadNames, settings.bismillahReminder, readyToStart]);
 
   // Navigate to end summary when game is over
   useEffect(() => {
@@ -68,6 +79,18 @@ export default function Play() {
     if (input.trim() && !isOver) {
       submitGuess();
     }
+  };
+
+  const handleBismillahStart = () => {
+    setShowBismillahReminder(false);
+    setReadyToStart(true);
+    startGame();
+  };
+
+  const handleBismillahCancel = () => {
+    setShowBismillahReminder(false);
+    setReadyToStart(true);
+    startGame();
   };
 
   const accuracy = submissions > 0 ? Math.round((foundIds.size / submissions) * 100) : 0;
@@ -196,6 +219,13 @@ export default function Play() {
           </p>
         </div>
       </div>
+      
+      <BismillahReminder
+        isOpen={showBismillahReminder}
+        onStart={handleBismillahStart}
+        onCancel={handleBismillahCancel}
+        mode="challenge"
+      />
     </div>
   );
 }

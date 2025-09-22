@@ -6,6 +6,7 @@ interface Settings {
   showMeaning: boolean;
   haptics: boolean;
   soundEffects: boolean;
+  bismillahReminder: boolean;
 }
 
 const defaultSettings: Settings = {
@@ -14,6 +15,7 @@ const defaultSettings: Settings = {
   showMeaning: true,
   haptics: true,
   soundEffects: true,
+  bismillahReminder: true,
 };
 
 export function useSettings() {

@@ -7,6 +7,8 @@ import { Progress } from '@/components/ui/progress';
 import { DailyTimer } from '@/components/DailyTimer';
 import { StreakDisplay } from '@/components/StreakDisplay';
 import { NameCard } from '@/components/NameCard';
+import { StatusMessage } from '@/components/StatusMessage';
+import { BismillahReminder } from '@/components/BismillahReminder';
 import { useDailyStore } from '@/store/daily';
 import { useSettings } from '@/hooks/useSettings';
 import { useAudio } from '@/hooks/useAudio';
@@ -37,7 +39,10 @@ const Daily = () => {
   const { settings } = useSettings();
   const { playSound } = useAudio();
   const { success: vibrateSuccess, error: vibrateError } = useHaptics();
-  const [feedback, setFeedback] = useState<{ type: 'success' | 'error' | null; message: string }>({ type: null, message: '' });
+  const [statusMessage, setStatusMessage] = useState<{ type: 'success' | 'error' | 'warning' | null; text: string }>({ type: null, text: '' });
+  const [wrongInput, setWrongInput] = useState(false);
+  const [showBismillahReminder, setShowBismillahReminder] = useState(false);
+  const [readyToStart, setReadyToStart] = useState(false);
 
   // Timer effect
   useEffect(() => {
@@ -57,10 +62,14 @@ const Daily = () => {
 
   // Initialize daily challenge
   useEffect(() => {
-    if (allNames.length > 0) {
-      startDaily();
+    if (allNames.length > 0 && !todayCompleted) {
+      if (settings.bismillahReminder && !readyToStart) {
+        setShowBismillahReminder(true);
+      } else {
+        startDaily();
+      }
     }
-  }, [startDaily, allNames.length]);
+  }, [startDaily, allNames.length, todayCompleted, settings.bismillahReminder, readyToStart]);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -71,14 +80,34 @@ const Daily = () => {
     if (success) {
       if (settings.soundEffects) playSound('correct');
       if (settings.haptics) vibrateSuccess();
-      setFeedback({ type: 'success', message: 'Correct!' });
+      setStatusMessage({ type: 'success', text: '✅ Found: Correct!' });
+      setWrongInput(false);
     } else {
       if (settings.soundEffects) playSound('incorrect');
       if (settings.haptics) vibrateError();
-      setFeedback({ type: 'error', message: 'Try again!' });
+      setStatusMessage({ type: 'error', text: '❌ Not found - try another name' });
+      setWrongInput(true);
     }
-    
-    setTimeout(() => setFeedback({ type: null, message: '' }), 1500);
+  };
+
+  // Clear feedback after delay
+  useEffect(() => {
+    if (wrongInput) {
+      const timer = setTimeout(() => setWrongInput(false), 600);
+      return () => clearTimeout(timer);
+    }
+  }, [wrongInput]);
+
+  const handleBismillahStart = () => {
+    setShowBismillahReminder(false);
+    setReadyToStart(true);
+    startDaily();
+  };
+
+  const handleBismillahCancel = () => {
+    setShowBismillahReminder(false);
+    setReadyToStart(true);
+    startDaily();
   };
 
   const progress = names.length > 0 ? (found.size / names.length) * 100 : 0;
@@ -226,19 +255,16 @@ const Daily = () => {
                         onChange={(e) => setInput(e.target.value)}
                         placeholder="Type a name of Allah..."
                         className={`text-lg h-12 ${
-                          feedback.type === 'success' ? 'border-success pulse-success' :
-                          feedback.type === 'error' ? 'border-destructive shake' : ''
+                          wrongInput ? 'shake' : ''
                         }`}
                         autoFocus
                         disabled={!isActive}
                       />
-                      {feedback.message && (
-                        <div className={`absolute -bottom-6 left-0 text-sm font-medium ${
-                          feedback.type === 'success' ? 'text-success' : 'text-destructive'
-                        }`}>
-                          {feedback.message}
-                        </div>
-                      )}
+                      <StatusMessage 
+                        type={statusMessage.type}
+                        message={statusMessage.text}
+                        onClear={() => setStatusMessage({ type: null, text: '' })}
+                      />
                     </div>
                     <Button type="submit" className="w-full" disabled={!isActive || !input.trim()}>
                       Submit Guess
@@ -407,6 +433,13 @@ const Daily = () => {
           </div>
         )}
       </div>
+      
+      <BismillahReminder
+        isOpen={showBismillahReminder}
+        onStart={handleBismillahStart}
+        onCancel={handleBismillahCancel}
+        mode="daily"
+      />
     </div>
   );
 };

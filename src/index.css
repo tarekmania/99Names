@@ -177,4 +177,12 @@ All colors MUST be HSL.
     -webkit-text-fill-color: transparent;
     background-clip: text;
   }
+
+  /* Arabic font styling */
+  .font-arabic {
+    font-family: 'Amiri', 'Traditional Arabic', serif;
+    font-weight: 400;
+    text-align: right;
+    direction: rtl;
+  }
 }
