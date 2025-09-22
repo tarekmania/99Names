@@ -15,7 +15,7 @@ The workflow (`build-apk.yml`) automatically:
    - GitHub releases
 
 2. **Build Process:**
-   - Sets up Node.js 18 and Java 17
+   - Sets up Node.js 20 and Java 17
    - Installs Android SDK
    - Installs npm dependencies
    - Builds the web application with Vite
@@ -71,7 +71,7 @@ You can manually trigger the workflow:
 
 The workflow uses these key components:
 
-- **Node.js 18**: For building the web application
+- **Node.js 20**: For building the web application
 - **Java 17**: Required for Android builds
 - **Android SDK**: For Capacitor Android builds
 - **Ubuntu Latest**: GitHub-hosted runner
