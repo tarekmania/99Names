@@ -3,7 +3,7 @@
 import { Link } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Play, BookOpen, Settings, BarChart3, Star, Clock, Target, Calendar, GraduationCap } from 'lucide-react';
+import { Play, BookOpen, Settings, BarChart3, Star, Clock, Target, Calendar, GraduationCap, Brain } from 'lucide-react';
 
 const Index = () => {
   return (
@@ -24,7 +24,7 @@ const Index = () => {
             in this timed memory challenge. Can you recall all 99 names?
           </p>
 
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-12 max-w-2xl mx-auto">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-12 max-w-4xl mx-auto">
             <Button 
               asChild 
               size="lg" 
@@ -45,6 +45,18 @@ const Index = () => {
               <Link to="/daily" className="gap-2 flex-col h-20">
                 <Calendar className="w-6 h-6" />
                 <span>Daily Practice</span>
+              </Link>
+            </Button>
+
+            <Button 
+              asChild 
+              variant="outline" 
+              size="lg"
+              className="px-6 py-4"
+            >
+              <Link to="/spaced-repetition" className="gap-2 flex-col h-20">
+                <Brain className="w-6 h-6" />
+                <span>Spaced Repetition</span>
               </Link>
             </Button>
 
