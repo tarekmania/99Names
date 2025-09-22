@@ -98,9 +98,15 @@ The workflow uses these key components:
    - Verify `android/` directory is committed
    - Check Capacitor configuration
 
-3. **Release Creation Fails**
-   - Ensure repository has proper permissions
-   - Check if `GITHUB_TOKEN` has required scopes
+3. **Release Creation Fails (403 Error)**
+   - The workflow includes `permissions: contents: write` to handle this
+   - If releases still fail, APK artifacts are still available in Actions tab
+   - Release creation failure won't stop APK building (uses `continue-on-error`)
+   - Repository owner may need to enable Actions permissions in Settings > Actions
+
+4. **Permissions Issues**
+   - Go to repository Settings > Actions > General
+   - Ensure "Read and write permissions" is selected for GITHUB_TOKEN
 
 **Viewing Build Logs:**
 1. Go to Actions tab
