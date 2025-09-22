@@ -66,15 +66,15 @@ const Daily = () => {
     e.preventDefault();
     if (!input.trim() || !isActive || isCompleted) return;
 
-    const success = submitGuess(input.trim());
+    const success = submitGuess(input);
     
     if (success) {
-      playSound('correct');
-      vibrateSuccess();
+      if (settings.soundEffects) playSound('correct');
+      if (settings.haptics) vibrateSuccess();
       setFeedback({ type: 'success', message: 'Correct!' });
     } else {
-      playSound('incorrect');
-      vibrateError();
+      if (settings.soundEffects) playSound('incorrect');
+      if (settings.haptics) vibrateError();
       setFeedback({ type: 'error', message: 'Try again!' });
     }
     

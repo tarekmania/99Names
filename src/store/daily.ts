@@ -110,34 +110,31 @@ export const useDailyStore = create<DailyState>((set, get) => ({
 
   submitGuess: (guess: string) => {
     const { names, found, isActive, isCompleted } = get();
-    if (!isActive || isCompleted) return false;
+    if (!isActive || isCompleted || !guess.trim()) return false;
 
-    // Import matchesName function and check synchronously
-    const { matchesName } = require('@/utils/match');
+    const input = guess.trim();
+    const matchedName = names.find(name => 
+      !found.has(name.id) && matchesName(input, name)
+    );
 
-    for (const name of names) {
-      if (!found.has(name.id)) {
-        const matches = matchesName(guess, name);
-        if (matches) {
-          const newFound = new Set(found);
-          newFound.add(name.id);
-          
-          const allFound = newFound.size === names.length;
-          
-          set({ 
-            found: newFound, 
-            input: '',
-            isCompleted: allFound,
-            isActive: !allFound
-          });
+    if (matchedName) {
+      const newFound = new Set(found);
+      newFound.add(matchedName.id);
+      
+      const allFound = newFound.size === names.length;
+      
+      set({ 
+        found: newFound, 
+        input: '',
+        isCompleted: allFound,
+        isActive: !allFound
+      });
 
-          if (allFound) {
-            get().saveDailyResult(true);
-          }
-          
-          return true;
-        }
+      if (allFound) {
+        get().saveDailyResult(true);
       }
+      
+      return true;
     }
     return false;
   },
