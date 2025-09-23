@@ -16,6 +16,7 @@ import Daily from "./pages/Daily";
 import Auth from "./pages/Auth";
 import NotFound from "./pages/NotFound";
 import { InstallPrompt } from "@/components/InstallPrompt";
+import { AuthWrapper } from "@/components/AuthWrapper";
 
 const queryClient = new QueryClient();
 
@@ -26,21 +27,23 @@ const App = () => (
         <Toaster />
         <Sonner />
         <BrowserRouter>
-          <Routes>
-            <Route path="/" element={<Index />} />
-            <Route path="/play" element={<Play />} />
-            <Route path="/end-summary" element={<EndSummary />} />
-            <Route path="/how-to-play" element={<HowToPlay />} />
-            <Route path="/settings" element={<Settings />} />
-            <Route path="/stats" element={<Stats />} />
-            <Route path="/study" element={<Study />} />
-            <Route path="/study/:id" element={<StudyDetail />} />
-            <Route path="/daily" element={<Daily />} />
-            <Route path="/auth" element={<Auth />} />
-            {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
-            <Route path="*" element={<NotFound />} />
-          </Routes>
-          <InstallPrompt />
+          <AuthWrapper>
+            <Routes>
+              <Route path="/" element={<Index />} />
+              <Route path="/play" element={<Play />} />
+              <Route path="/end-summary" element={<EndSummary />} />
+              <Route path="/how-to-play" element={<HowToPlay />} />
+              <Route path="/settings" element={<Settings />} />
+              <Route path="/stats" element={<Stats />} />
+              <Route path="/study" element={<Study />} />
+              <Route path="/study/:id" element={<StudyDetail />} />
+              <Route path="/daily" element={<Daily />} />
+              <Route path="/auth" element={<Auth />} />
+              {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
+              <Route path="*" element={<NotFound />} />
+            </Routes>
+            <InstallPrompt />
+          </AuthWrapper>
         </BrowserRouter>
       </TooltipProvider>
     </AuthProvider>

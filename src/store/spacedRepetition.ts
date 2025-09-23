@@ -2,6 +2,7 @@ import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 import { NAMES } from '@/data/names';
 import { openDB, IDBPDatabase } from 'idb';
+import { supabase } from '@/integrations/supabase/client';
 
 interface SpacedRepetitionItem {
   nameId: number;
@@ -171,7 +172,7 @@ export const useSpacedRepetitionStore = create<SpacedRepetitionState>()(
         });
       },
 
-      submitAnswer: (quality: number) => {
+      submitAnswer: async (quality: number) => {
         const { currentSession, currentIndex, items, todayReviewed } = get();
         
         if (!currentSession[currentIndex]) return;
@@ -184,8 +185,28 @@ export const useSpacedRepetitionStore = create<SpacedRepetitionState>()(
           item.nameId === updatedItem.nameId ? updatedItem : item
         );
         
-        // Save to database
+        // Save to local database
         saveItems([updatedItem]);
+        
+        // Save to Supabase if user is authenticated
+        try {
+          const { data: { user } } = await supabase.auth.getUser();
+          if (user) {
+            await supabase.from('spaced_repetition_items').upsert({
+              user_id: user.id,
+              name_id: updatedItem.nameId,
+              interval_days: updatedItem.interval,
+              ease_factor: updatedItem.easeFactor,
+              consecutive_correct: updatedItem.consecutiveCorrect,
+              last_reviewed: updatedItem.lastReviewed.toISOString(),
+              next_review: updatedItem.nextReview.toISOString(),
+            }, {
+              onConflict: 'user_id,name_id'
+            });
+          }
+        } catch (error) {
+          console.warn('Failed to sync spaced repetition item to cloud:', error);
+        }
         
         const nextIndex = currentIndex + 1;
         const completed = nextIndex >= currentSession.length;

@@ -1,6 +1,7 @@
 import { createContext, useContext, useEffect, useState } from 'react';
 import { User, Session } from '@supabase/supabase-js';
 import { supabase } from '@/integrations/supabase/client';
+import { DataSyncDialog } from '@/components/DataSyncDialog';
 
 interface AuthContextType {
   user: User | null;

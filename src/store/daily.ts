@@ -3,6 +3,7 @@ import { NAMES, DivineName } from '@/data/names';
 import { db } from '@/utils/db';
 import { fetchDivineNames } from '@/services/divineNamesApi';
 import { matchesName } from '@/utils/match';
+import { supabase } from '@/integrations/supabase/client';
 
 export interface DailyResult {
   date: string;
@@ -180,7 +181,27 @@ export const useDailyStore = create<DailyState>((set, get) => ({
       names: Array.from(found)
     };
     
+    // Save to local database
     await db.saveDailyResult(result);
+    
+    // Save to Supabase if user is authenticated
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (user) {
+        const foundNamesArray = Array.from(found).map(id => id.toString());
+        await supabase.from('daily_results').upsert({
+          user_id: user.id,
+          date: today,
+          completed,
+          streak_count: 0, // Will be calculated after insert
+          found_names: foundNamesArray,
+        }, {
+          onConflict: 'user_id,date'
+        });
+      }
+    } catch (error) {
+      console.warn('Failed to sync daily result to cloud:', error);
+    }
     
     // Update streak
     const results = await db.getDailyResults();

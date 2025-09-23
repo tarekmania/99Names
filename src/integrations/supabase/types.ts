@@ -41,6 +41,135 @@ export type Database = {
         }
         Relationships: []
       }
+      game_results: {
+        Row: {
+          id: string
+          user_id: string
+          timestamp: number
+          found_count: number
+          duration_ms: number
+          completed: boolean
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          user_id: string
+          timestamp: number
+          found_count: number
+          duration_ms: number
+          completed?: boolean
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          user_id?: string
+          timestamp?: number
+          found_count?: number
+          duration_ms?: number
+          completed?: boolean
+          created_at?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      daily_results: {
+        Row: {
+          id: string
+          user_id: string
+          date: string
+          completed: boolean
+          streak_count: number
+          found_names: string[]
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          user_id: string
+          date: string
+          completed?: boolean
+          streak_count?: number
+          found_names?: string[]
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          user_id?: string
+          date?: string
+          completed?: boolean
+          streak_count?: number
+          found_names?: string[]
+          created_at?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      spaced_repetition_items: {
+        Row: {
+          id: string
+          user_id: string
+          name_id: number
+          interval_days: number
+          ease_factor: number
+          consecutive_correct: number
+          last_reviewed: string | null
+          next_review: string
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          user_id: string
+          name_id: number
+          interval_days?: number
+          ease_factor?: number
+          consecutive_correct?: number
+          last_reviewed?: string | null
+          next_review?: string
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          user_id?: string
+          name_id?: number
+          interval_days?: number
+          ease_factor?: number
+          consecutive_correct?: number
+          last_reviewed?: string | null
+          next_review?: string
+          created_at?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      user_settings: {
+        Row: {
+          id: string
+          user_id: string
+          settings_json: any
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          user_id: string
+          settings_json?: any
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          user_id?: string
+          settings_json?: any
+          created_at?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never

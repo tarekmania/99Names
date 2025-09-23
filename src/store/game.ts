@@ -4,6 +4,7 @@ import type { DivineName } from '@/data/names';
 import { matchesName } from '@/utils/match';
 import { db } from '@/utils/db';
 import { fetchDivineNames } from '@/services/divineNamesApi';
+import { supabase } from '@/integrations/supabase/client';
 
 export interface GameResult {
   timestamp: number;
@@ -132,7 +133,7 @@ export const useGameStore = create<GameState>((set, get) => ({
     }
   },
 
-  revealNow: () => {
+  revealNow: async () => {
     const state = get();
     if (!state.isPlaying) return;
 
@@ -144,7 +145,24 @@ export const useGameStore = create<GameState>((set, get) => ({
       completed: state.foundIds.size === state.names.length,
     };
 
+    // Save to local database
     db.saveGameResult(result);
+
+    // Save to Supabase if user is authenticated
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (user) {
+        await supabase.from('game_results').insert({
+          user_id: user.id,
+          timestamp: result.timestamp,
+          found_count: result.found,
+          duration_ms: result.durationMs,
+          completed: result.completed,
+        });
+      }
+    } catch (error) {
+      console.warn('Failed to sync game result to cloud:', error);
+    }
 
     set({
       isOver: true,
