@@ -30,6 +30,7 @@ export const SpacedRepetitionSession = ({ onComplete }: SpacedRepetitionSessionP
   const [showAnswer, setShowAnswer] = useState(false);
   const [selectedQuality, setSelectedQuality] = useState<number | null>(null);
   const [answerRevealed, setAnswerRevealed] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
 
   const currentItem = getCurrentItem();
   const progress = currentSession.length > 0 ? ((currentIndex + 1) / currentSession.length) * 100 : 0;
@@ -42,10 +43,29 @@ export const SpacedRepetitionSession = ({ onComplete }: SpacedRepetitionSessionP
 
   useEffect(() => {
     // Reset state when moving to next item
+    setIsLoading(true);
     setShowAnswer(false);
     setSelectedQuality(null);
     setAnswerRevealed(false);
+    
+    // Small delay to ensure clean state transition
+    const timer = setTimeout(() => {
+      setIsLoading(false);
+    }, 150);
+    
+    return () => clearTimeout(timer);
   }, [currentIndex]);
+
+  // Initial load
+  useEffect(() => {
+    if (currentItem) {
+      const timer = setTimeout(() => {
+        setIsLoading(false);
+      }, 150);
+      
+      return () => clearTimeout(timer);
+    }
+  }, [currentItem]);
 
   const handleRevealAnswer = () => {
     setShowAnswer(true);
@@ -161,73 +181,87 @@ export const SpacedRepetitionSession = ({ onComplete }: SpacedRepetitionSessionP
           </div>
         </CardHeader>
         <CardContent className="space-y-6">
-          {/* Question */}
-          <div className="text-center space-y-4">
-            <div className="text-sm text-muted-foreground">What is the meaning of this name?</div>
-            <div className="text-2xl font-bold text-primary">
-              {name.arabic}
-            </div>
-            <div className="text-lg font-semibold">
-              {name.englishName}
-            </div>
-          </div>
-
-          {/* Reveal Answer Button */}
-          {!showAnswer && (
-            <div className="text-center">
-              <Button onClick={handleRevealAnswer} size="lg">
-                Reveal Answer
-              </Button>
-            </div>
-          )}
-
-          {/* Answer */}
-          {showAnswer && (
-            <div className="bg-muted/50 rounded-lg p-6 space-y-4">
-              <div className="text-center">
-                <h3 className="font-semibold mb-2 text-primary">Meaning:</h3>
-                <p className="text-lg">{name.meanings}</p>
+          {isLoading ? (
+            /* Loading State */
+            <div className="text-center space-y-4 py-8">
+              <div className="animate-pulse space-y-4">
+                <div className="h-4 bg-muted rounded w-48 mx-auto"></div>
+                <div className="h-8 bg-muted rounded w-32 mx-auto"></div>
+                <div className="h-6 bg-muted rounded w-40 mx-auto"></div>
               </div>
+              <div className="text-sm text-muted-foreground">Loading next name...</div>
             </div>
-          )}
-
-          {/* Quality Rating */}
-          {showAnswer && (
-            <div className="space-y-4">
-              <div className="text-center">
-                <h3 className="font-semibold mb-2">How well did you know this?</h3>
-                <p className="text-sm text-muted-foreground">
-                  Rate your recall quality to improve future reviews
-                </p>
+          ) : (
+            <>
+              {/* Question */}
+              <div className="text-center space-y-4">
+                <div className="text-sm text-muted-foreground">What is the meaning of this name?</div>
+                <div className="text-2xl font-bold text-primary">
+                  {name.arabic}
+                </div>
+                <div className="text-lg font-semibold">
+                  {name.englishName}
+                </div>
               </div>
-              
-              <div className="grid grid-cols-2 gap-3">
-                {[0, 1, 2, 3, 4, 5].map((quality) => (
-                  <Button
-                    key={quality}
-                    variant={selectedQuality === quality ? "default" : "outline"}
-                    size="sm"
-                    onClick={() => handleSubmitQuality(quality)}
-                    className={`flex flex-col h-auto py-3 ${
-                      selectedQuality === quality ? 'ring-2 ring-primary' : ''
-                    }`}
-                    disabled={selectedQuality !== null}
-                  >
-                    <div className="flex items-center gap-2 mb-1">
-                      {quality >= 3 ? (
-                        <CheckCircle className="w-4 h-4 text-success" />
-                      ) : (
-                        <XCircle className="w-4 h-4 text-destructive" />
-                      )}
-                      <span className="font-bold">{quality}</span>
-                    </div>
-                    <span className="text-xs text-center leading-tight">
-                      {getQualityLabel(quality)}
-                    </span>
+
+              {/* Reveal Answer Button */}
+              {!showAnswer && (
+                <div className="text-center">
+                  <Button onClick={handleRevealAnswer} size="lg">
+                    Reveal Answer
                   </Button>
-                ))}
-              </div>
-            </div>
+                </div>
+              )}
+
+              {/* Answer - Only render when showAnswer is true */}
+              {showAnswer && (
+                <div className="bg-muted/50 rounded-lg p-6 space-y-4 animate-in fade-in-50 duration-300">
+                  <div className="text-center">
+                    <h3 className="font-semibold mb-2 text-primary">Meaning:</h3>
+                    <p className="text-lg">{name.meanings}</p>
+                  </div>
+                </div>
+              )}
+
+              {/* Quality Rating - Only render when showAnswer is true */}
+              {showAnswer && (
+                <div className="space-y-4 animate-in fade-in-50 duration-300">
+                  <div className="text-center">
+                    <h3 className="font-semibold mb-2">How well did you know this?</h3>
+                    <p className="text-sm text-muted-foreground">
+                      Rate your recall quality to improve future reviews
+                    </p>
+                  </div>
+                  
+                  <div className="grid grid-cols-2 gap-3">
+                    {[0, 1, 2, 3, 4, 5].map((quality) => (
+                      <Button
+                        key={quality}
+                        variant={selectedQuality === quality ? "default" : "outline"}
+                        size="sm"
+                        onClick={() => handleSubmitQuality(quality)}
+                        className={`flex flex-col h-auto py-3 ${
+                          selectedQuality === quality ? 'ring-2 ring-primary' : ''
+                        }`}
+                        disabled={selectedQuality !== null}
+                      >
+                        <div className="flex items-center gap-2 mb-1">
+                          {quality >= 3 ? (
+                            <CheckCircle className="w-4 h-4 text-success" />
+                          ) : (
+                            <XCircle className="w-4 h-4 text-destructive" />
+                          )}
+                          <span className="font-bold">{quality}</span>
+                        </div>
+                        <span className="text-xs text-center leading-tight">
+                          {getQualityLabel(quality)}
+                        </span>
+                      </Button>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </>
           )}
         </CardContent>
       </Card>
