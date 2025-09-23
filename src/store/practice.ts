@@ -90,7 +90,7 @@ interface PracticeState {
   // Utility actions
   setInput: (input: string) => void;
   clearFeedback: () => void;
-  getStats: () => PracticeStats;
+  getStats: () => Promise<PracticeStats>;
   getCurrentItem: () => PracticeItem | null;
 }
 
@@ -416,9 +416,20 @@ export const usePracticeStore = create<PracticeState>()(
         
         if (!currentItem || !input.trim()) return false;
         
+        // Debug logging to identify matching issues
+        console.log('🔍 Name Matching Debug:', {
+          input: input.trim(),
+          targetName: currentItem.name.englishName,
+          targetAliases: currentItem.name.aliases,
+          nameId: currentItem.nameId
+        });
+        
         const isCorrect = matchesName(input.trim(), currentItem.name);
         
+        console.log('✅ Match Result:', isCorrect);
+        
         if (isCorrect) {
+          console.log('🎉 Correct match found!');
           set({ 
             input: '', 
             wrongInput: false,
@@ -427,6 +438,7 @@ export const usePracticeStore = create<PracticeState>()(
           });
           return true;
         } else {
+          console.log('❌ No match found');
           set({ wrongInput: true });
           return false;
         }
@@ -626,20 +638,62 @@ export const usePracticeStore = create<PracticeState>()(
         set({ wrongInput: false });
       },
 
-      getStats: (): PracticeStats => {
-        // This will be implemented to calculate real-time stats
-        return {
-          totalNames: get().allNames.length,
-          masteredNames: 0,
-          learningNames: 0,
-          newNames: 0,
-          dueForReview: 0,
-          currentStreak: 0,
-          bestStreak: 0,
-          totalSessions: 0,
-          averageAccuracy: 0,
-          totalPracticeTime: 0,
-        };
+      getStats: async (): Promise<PracticeStats> => {
+        const { allNames } = get();
+        
+        try {
+          // Get spaced repetition data for real statistics
+          const spacedRepItems = await getSpacedRepetitionItems();
+          const now = new Date();
+          
+          // Calculate real statistics
+          const totalNames = allNames.length;
+          const learningNames = spacedRepItems.length;
+          
+          // Mastered = items with 5+ consecutive correct answers
+          const masteredNames = spacedRepItems.filter(item => 
+            (item.consecutiveCorrect || 0) >= 5
+          ).length;
+          
+          // Due for review = items with nextReview <= now
+          const dueForReview = spacedRepItems.filter(item => 
+            item.nextReview && new Date(item.nextReview) <= now
+          ).length;
+          
+          // New names = total - learning
+          const newNames = totalNames - learningNames;
+          
+          // Learning names = learning but not mastered
+          const actualLearningNames = learningNames - masteredNames;
+          
+          return {
+            totalNames,
+            masteredNames,
+            learningNames: actualLearningNames,
+            newNames,
+            dueForReview,
+            currentStreak: 0, // TODO: Implement practice streak calculation
+            bestStreak: 0, // TODO: Implement best practice streak
+            totalSessions: 0, // TODO: Implement session counting
+            averageAccuracy: 0, // TODO: Implement accuracy calculation
+            totalPracticeTime: 0, // TODO: Implement time tracking
+          };
+        } catch (error) {
+          console.warn('Failed to calculate practice stats:', error);
+          // Fallback to basic stats
+          return {
+            totalNames: allNames.length,
+            masteredNames: 0,
+            learningNames: 0,
+            newNames: allNames.length,
+            dueForReview: 0,
+            currentStreak: 0,
+            bestStreak: 0,
+            totalSessions: 0,
+            averageAccuracy: 0,
+            totalPracticeTime: 0,
+          };
+        }
       },
 
       getCurrentItem: () => {

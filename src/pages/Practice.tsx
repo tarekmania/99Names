@@ -7,7 +7,7 @@ import { Progress } from '@/components/ui/progress';
 import { Badge } from '@/components/ui/badge';
 import { StatusMessage } from '@/components/StatusMessage';
 import { BismillahReminder } from '@/components/BismillahReminder';
-import { usePracticeStore } from '@/store/practice';
+import { usePracticeStore, type PracticeStats } from '@/store/practice';
 import { useSettings } from '@/hooks/useSettings';
 import { useAudio } from '@/hooks/useAudio';
 import { useHaptics } from '@/hooks/useHaptics';
@@ -64,13 +64,40 @@ const Practice = () => {
   const [sessionDuration, setSessionDuration] = useState(15); // minutes
 
   const currentItem = getCurrentItem();
-  const stats = getStats();
+  const [stats, setStats] = useState<PracticeStats>({
+    totalNames: 0,
+    masteredNames: 0,
+    learningNames: 0,
+    newNames: 0,
+    dueForReview: 0,
+    currentStreak: 0,
+    bestStreak: 0,
+    totalSessions: 0,
+    averageAccuracy: 0,
+    totalPracticeTime: 0,
+  });
   const progress = currentSession.length > 0 ? ((currentIndex + 1) / currentSession.length) * 100 : 0;
 
   // Initialize practice on component mount
   useEffect(() => {
     initializePractice();
   }, [initializePractice]);
+
+  // Load stats when component mounts and when session changes
+  useEffect(() => {
+    const loadStats = async () => {
+      try {
+        const newStats = await getStats();
+        setStats(newStats);
+      } catch (error) {
+        console.warn('Failed to load practice stats:', error);
+      }
+    };
+    
+    if (!loading) {
+      loadStats();
+    }
+  }, [loading, getStats, sessionCompleted]);
 
   // Clear feedback after delay
   useEffect(() => {
