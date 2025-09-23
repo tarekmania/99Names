@@ -12,7 +12,7 @@ import Settings from "./pages/Settings";
 import Stats from "./pages/Stats";
 import Study from "./pages/Study";
 import StudyDetail from "./pages/StudyDetail";
-import Daily from "./pages/Daily";
+import Practice from "./pages/Practice";
 import Auth from "./pages/Auth";
 import NotFound from "./pages/NotFound";
 import { InstallPrompt } from "@/components/InstallPrompt";
@@ -37,7 +37,7 @@ const App = () => (
               <Route path="/stats" element={<Stats />} />
               <Route path="/study" element={<Study />} />
               <Route path="/study/:id" element={<StudyDetail />} />
-              <Route path="/daily" element={<Daily />} />
+              <Route path="/practice" element={<Practice />} />
               <Route path="/auth" element={<Auth />} />
               {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
               <Route path="*" element={<NotFound />} />

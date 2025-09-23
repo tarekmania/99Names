@@ -77,9 +77,9 @@ const Index = () => {
               size="lg"
               className="px-6 py-4"
             >
-              <Link to="/daily" className="gap-2 flex-col h-20">
+              <Link to="/practice" className="gap-2 flex-col h-20">
                 <Calendar className="w-6 h-6" />
-                <span>Daily Practice</span>
+                <span>Smart Practice</span>
               </Link>
             </Button>
 
