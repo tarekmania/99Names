@@ -59,7 +59,9 @@ const Daily = () => {
   const [showBismillahReminder, setShowBismillahReminder] = useState(false);
   const [readyToStart, setReadyToStart] = useState(false);
   const [activeTab, setActiveTab] = useState<'regular' | 'spaced'>('regular');
-  const [srStats, setSrStats] = useState({ due: 0, total: 0, reviewed: 0 });
+  
+  // Get real-time stats directly from store instead of caching in local state
+  const srStats = getStats();
 
   // Timer effect
   useEffect(() => {
@@ -78,12 +80,7 @@ const Daily = () => {
     initializeItems();
   }, [loadNames, initializeItems]);
 
-  // Update spaced repetition stats
-  useEffect(() => {
-    if (!srLoading) {
-      setSrStats(getStats());
-    }
-  }, [srLoading, getStats, srSessionStarted, srSessionCompleted, items]);
+  // No longer needed - using direct store access for real-time stats
 
   // Initialize daily challenge
   useEffect(() => {
