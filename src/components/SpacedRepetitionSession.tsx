@@ -87,10 +87,8 @@ export const SpacedRepetitionSession = ({ onComplete }: SpacedRepetitionSessionP
       quality >= 3 ? vibrateSuccess() : vibrateError();
     }
     
-    // Submit answer after brief delay
-    setTimeout(() => {
-      submitAnswer(quality);
-    }, 500);
+    // Submit answer immediately to update stats
+    submitAnswer(quality);
   };
 
   const getQualityLabel = (quality: number) => {

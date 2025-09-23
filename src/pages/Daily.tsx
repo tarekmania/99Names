@@ -45,6 +45,7 @@ const Daily = () => {
     startReviewSession,
     resetSession,
     getStats,
+    items,
     loading: srLoading,
     sessionStarted: srSessionStarted,
     sessionCompleted: srSessionCompleted
@@ -82,7 +83,7 @@ const Daily = () => {
     if (!srLoading) {
       setSrStats(getStats());
     }
-  }, [srLoading, getStats, srSessionStarted, srSessionCompleted]);
+  }, [srLoading, getStats, srSessionStarted, srSessionCompleted, items]);
 
   // Initialize daily challenge
   useEffect(() => {
