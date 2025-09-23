@@ -3,14 +3,49 @@
 import { Link } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Play, BookOpen, Settings, BarChart3, Star, Clock, Target, Calendar, GraduationCap } from 'lucide-react';
+import { Play, BookOpen, Settings, BarChart3, Star, Clock, Target, Calendar, GraduationCap, LogIn, LogOut, User } from 'lucide-react';
+import { useAuth } from '@/hooks/useAuth';
 
 const Index = () => {
+  const { user, signOut, loading } = useAuth();
+
   return (
     <div className="min-h-screen bg-gradient-subtle">
+      {/* Header with Auth */}
+      <div className="container max-w-4xl mx-auto px-4 pt-6">
+        <div className="flex justify-end mb-4">
+          {loading ? (
+            <div className="h-9 w-24 bg-muted/50 rounded animate-pulse" />
+          ) : user ? (
+            <div className="flex items-center gap-2">
+              <div className="flex items-center gap-2 text-sm">
+                <User className="w-4 h-4" />
+                <span>Welcome back!</span>
+              </div>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={signOut}
+                className="gap-2"
+              >
+                <LogOut className="w-4 h-4" />
+                Sign Out
+              </Button>
+            </div>
+          ) : (
+            <Button asChild variant="outline" size="sm" className="gap-2">
+              <Link to="/auth">
+                <LogIn className="w-4 h-4" />
+                Sign In
+              </Link>
+            </Button>
+          )}
+        </div>
+      </div>
+
       {/* Hero Section */}
       <div className="relative overflow-hidden">
-        <div className="container max-w-4xl mx-auto px-4 py-16 text-center">
+        <div className="container max-w-4xl mx-auto px-4 py-8 text-center">
           <div className="inline-flex items-center justify-center w-24 h-24 bg-gradient-primary rounded-full mb-6 shadow-glow">
             <Star className="w-12 h-12 text-primary-foreground" />
           </div>
