@@ -236,22 +236,20 @@ const Practice = () => {
                   </div>
                 </div>
                 
-                <div className="bg-white/10 rounded-lg p-4 mb-6">
-                  <p className="text-accent-foreground/90 text-sm">
-                    ⏰ Returning to main menu in 5 seconds...
-                  </p>
-                </div>
-                
-                <div className="flex justify-center gap-4">
-                  <Button asChild size="lg" className="bg-white/20 hover:bg-white/30">
+                <div className="flex justify-center gap-3 flex-wrap">
+                  <Button 
+                    onClick={resetSession} 
+                    size="lg" 
+                    className="bg-white/20 hover:bg-white/30"
+                  >
+                    <RotateCcw className="w-4 h-4 mr-2" />
+                    Back to Practice
+                  </Button>
+                  <Button asChild variant="outline" size="lg">
                     <Link to="/">
                       <ArrowLeft className="w-4 h-4 mr-2" />
-                      Back to Menu
+                      Main Menu
                     </Link>
-                  </Button>
-                  <Button onClick={resetSession} variant="outline" size="lg">
-                    <RotateCcw className="w-4 h-4 mr-2" />
-                    New Session
                   </Button>
                   <Button asChild variant="outline" size="lg">
                     <Link to="/study">

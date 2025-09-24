@@ -533,13 +533,6 @@ export const usePracticeStore = create<PracticeState>()(
           sessionCompleted: true,
           sessionResults: results,
         });
-        
-        // Auto-navigate back to menu after 5 seconds
-        setTimeout(() => {
-          if (typeof window !== 'undefined' && window.location.pathname === '/practice') {
-            window.location.href = '/';
-          }
-        }, 5000);
       },
 
       resetSession: () => {
