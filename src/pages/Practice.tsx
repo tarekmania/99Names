@@ -207,13 +207,6 @@ const Practice = () => {
       <div className="min-h-screen bg-gradient-subtle">
         <div className="container max-w-4xl mx-auto px-4 py-8">
           <div className="text-center mb-8">
-            <Button variant="outline" size="sm" asChild className="mb-6">
-              <Link to="/">
-                <ArrowLeft className="w-4 h-4 mr-2" />
-                Back Home
-              </Link>
-            </Button>
-            
             <Card className="bg-gradient-accent shadow-glow">
               <CardContent className="text-center py-8">
                 <Trophy className="w-16 h-16 text-accent-foreground mx-auto mb-4" />
@@ -243,12 +236,24 @@ const Practice = () => {
                   </div>
                 </div>
                 
+                <div className="bg-white/10 rounded-lg p-4 mb-6">
+                  <p className="text-accent-foreground/90 text-sm">
+                    ⏰ Returning to main menu in 5 seconds...
+                  </p>
+                </div>
+                
                 <div className="flex justify-center gap-4">
-                  <Button onClick={resetSession} variant="outline">
+                  <Button asChild size="lg" className="bg-white/20 hover:bg-white/30">
+                    <Link to="/">
+                      <ArrowLeft className="w-4 h-4 mr-2" />
+                      Back to Menu
+                    </Link>
+                  </Button>
+                  <Button onClick={resetSession} variant="outline" size="lg">
                     <RotateCcw className="w-4 h-4 mr-2" />
                     New Session
                   </Button>
-                  <Button asChild>
+                  <Button asChild variant="outline" size="lg">
                     <Link to="/study">
                       <BookOpen className="w-4 h-4 mr-2" />
                       Browse Names

@@ -94,151 +94,111 @@ interface PracticeState {
   getCurrentItem: () => PracticeItem | null;
 }
 
-// Smart session generation algorithm
+// Simplified smart session generation algorithm
 const generateOptimalSession = async (
   allNames: DivineName[], 
   targetDuration: number = 900 // 15 minutes default
 ): Promise<PracticeItem[]> => {
   const session: PracticeItem[] = [];
-  let currentTime = 0;
+  const maxItems = Math.min(20, Math.floor(targetDuration / 45)); // ~45 seconds per item
   
   // Get spaced repetition data
   const spacedRepItems = await getSpacedRepetitionItems();
-  const dailyResults = await db.getDailyResults();
-  
-  // 1. Critical reviews (overdue spaced repetition items)
   const now = new Date();
-  const overdueItems = spacedRepItems.filter(item => 
-    item.nextReview <= now && 
-    (now.getTime() - item.nextReview.getTime()) > 24 * 60 * 60 * 1000 // More than 1 day overdue
-  );
   
-  for (const item of overdueItems.slice(0, 3)) {
-    const name = allNames.find(n => n.id === item.nameId);
-    if (name && currentTime < targetDuration) {
-      session.push({
-        id: `review-${item.nameId}-${Date.now()}`,
-        type: 'review',
-        nameId: item.nameId,
-        name,
-        priority: 10, // Highest priority
-        estimatedTime: 60,
-        difficulty: 'hard',
-        interval: item.interval,
-        easeFactor: item.easeFactor,
-        consecutiveCorrect: item.consecutiveCorrect,
-        lastReviewed: item.lastReviewed,
-        nextReview: item.nextReview,
-      });
-      currentTime += 60;
-    }
-  }
-  
-  // 2. Due reviews (scheduled for today)
+  // 1. Priority: Due and overdue reviews
   const dueItems = spacedRepItems.filter(item => 
-    item.nextReview <= now && 
-    !overdueItems.includes(item)
-  );
+    item.nextReview && new Date(item.nextReview) <= now
+  ).sort((a, b) => {
+    // Sort by how overdue they are (most overdue first)
+    const aOverdue = now.getTime() - new Date(a.nextReview).getTime();
+    const bOverdue = now.getTime() - new Date(b.nextReview).getTime();
+    return bOverdue - aOverdue;
+  });
   
-  for (const item of dueItems.slice(0, 5)) {
+  // Add due reviews (limit to prevent overwhelming)
+  const reviewLimit = Math.min(Math.floor(maxItems * 0.7), dueItems.length);
+  for (let i = 0; i < reviewLimit; i++) {
+    const item = dueItems[i];
     const name = allNames.find(n => n.id === item.nameId);
-    if (name && currentTime < targetDuration) {
+    if (name) {
       session.push({
-        id: `review-${item.nameId}-${Date.now()}`,
+        id: `review-${item.nameId}-${Date.now()}-${i}`,
         type: 'review',
         nameId: item.nameId,
         name,
-        priority: 8,
+        priority: 10 - i, // Higher priority for more overdue items
         estimatedTime: 45,
-        difficulty: 'medium',
+        difficulty: item.consecutiveCorrect < 2 ? 'hard' : 'medium',
         interval: item.interval,
         easeFactor: item.easeFactor,
         consecutiveCorrect: item.consecutiveCorrect,
-        lastReviewed: item.lastReviewed,
-        nextReview: item.nextReview,
+        lastReviewed: new Date(item.lastReviewed),
+        nextReview: new Date(item.nextReview),
       });
-      currentTime += 45;
     }
   }
   
-  // 3. New content (if user is ready and has time)
+  // 2. Add new content if there's space and user is ready
   const learnedNameIds = new Set(spacedRepItems.map(item => item.nameId));
   const newNames = allNames.filter(name => !learnedNameIds.has(name.id));
   
-  if (shouldIntroduceNewContent(spacedRepItems.length, session.length) && currentTime < targetDuration) {
-    for (const name of newNames.slice(0, 3)) {
-      if (currentTime < targetDuration) {
-        session.push({
-          id: `new-${name.id}-${Date.now()}`,
-          type: 'new',
-          nameId: name.id,
-          name,
-          priority: 6,
-          estimatedTime: 90,
-          difficulty: 'easy',
-        });
-        currentTime += 90;
-      }
-    }
-  }
-  
-  // 4. Reinforcement (recently learned items that need strengthening)
-  const recentItems = spacedRepItems.filter(item => 
-    item.consecutiveCorrect < 3 && 
-    item.lastReviewed && 
-    (now.getTime() - item.lastReviewed.getTime()) < 7 * 24 * 60 * 60 * 1000 // Within last week
-  );
-  
-  for (const item of recentItems.slice(0, 3)) {
-    const name = allNames.find(n => n.id === item.nameId);
-    if (name && currentTime < targetDuration) {
-      session.push({
-        id: `reinforcement-${item.nameId}-${Date.now()}`,
-        type: 'reinforcement',
-        nameId: item.nameId,
-        name,
-        priority: 4,
-        estimatedTime: 30,
-        difficulty: 'easy',
-        interval: item.interval,
-        easeFactor: item.easeFactor,
-        consecutiveCorrect: item.consecutiveCorrect,
-        lastReviewed: item.lastReviewed,
-        nextReview: item.nextReview,
-      });
-      currentTime += 30;
-    }
-  }
-  
-  // 5. Fill remaining time with mixed practice if needed
-  const remainingTime = targetDuration - currentTime;
-  if (remainingTime > 60 && session.length < 15) {
-    const additionalItems = Math.floor(remainingTime / 45);
-    const mixedItems = [...dueItems, ...recentItems].slice(0, additionalItems);
+  // Only introduce new content if we don't have too many reviews
+  if (session.length < maxItems * 0.8 && newNames.length > 0) {
+    const newItemsToAdd = Math.min(3, maxItems - session.length, newNames.length);
     
-    for (const item of mixedItems) {
+    for (let i = 0; i < newItemsToAdd; i++) {
+      const name = newNames[i];
+      session.push({
+        id: `new-${name.id}-${Date.now()}-${i}`,
+        type: 'new',
+        nameId: name.id,
+        name,
+        priority: 5,
+        estimatedTime: 60,
+        difficulty: 'easy',
+      });
+    }
+  }
+  
+  // 3. Fill remaining slots with reinforcement of weak items
+  if (session.length < maxItems) {
+    const weakItems = spacedRepItems.filter(item => 
+      item.consecutiveCorrect < 3 && 
+      !session.some(s => s.nameId === item.nameId) // Don't duplicate
+    ).sort((a, b) => (a.consecutiveCorrect || 0) - (b.consecutiveCorrect || 0));
+    
+    const slotsRemaining = maxItems - session.length;
+    for (let i = 0; i < Math.min(slotsRemaining, weakItems.length); i++) {
+      const item = weakItems[i];
       const name = allNames.find(n => n.id === item.nameId);
       if (name) {
         session.push({
-          id: `mixed-${item.nameId}-${Date.now()}`,
-          type: 'review',
+          id: `reinforcement-${item.nameId}-${Date.now()}-${i}`,
+          type: 'reinforcement',
           nameId: item.nameId,
           name,
-          priority: 2,
-          estimatedTime: 45,
-          difficulty: 'medium',
+          priority: 3,
+          estimatedTime: 40,
+          difficulty: 'easy',
           interval: item.interval,
           easeFactor: item.easeFactor,
           consecutiveCorrect: item.consecutiveCorrect,
-          lastReviewed: item.lastReviewed,
-          nextReview: item.nextReview,
+          lastReviewed: new Date(item.lastReviewed),
+          nextReview: new Date(item.nextReview),
         });
       }
     }
   }
   
-  // Sort by priority and optimize order
-  return optimizeSessionOrder(session);
+  // Simple ordering: reviews first, then new items, then reinforcement
+  return session.sort((a, b) => {
+    if (a.type !== b.type) {
+      const typeOrder = { review: 0, new: 1, reinforcement: 2, challenge: 3 };
+      return typeOrder[a.type] - typeOrder[b.type];
+    }
+    return b.priority - a.priority;
+  });
 };
 
 // Helper functions
@@ -253,54 +213,16 @@ const getSpacedRepetitionItems = async () => {
   }
 };
 
-const shouldIntroduceNewContent = (totalLearned: number, sessionReviews: number): boolean => {
-  // Don't introduce new content if user has too many reviews
-  if (sessionReviews > 8) return false;
+// Helper function to determine if session is well-balanced
+const isSessionBalanced = (session: PracticeItem[]): boolean => {
+  if (session.length === 0) return false;
   
-  // Introduce new content if user has learned fewer than 20 names
-  if (totalLearned < 20) return true;
+  const reviewCount = session.filter(item => item.type === 'review').length;
+  const totalItems = session.length;
   
-  // For experienced users, introduce new content more gradually
-  return sessionReviews < 5;
-};
-
-const optimizeSessionOrder = (session: PracticeItem[]): PracticeItem[] => {
-  // Sort by priority first
-  session.sort((a, b) => b.priority - a.priority);
-  
-  // Then optimize for learning effectiveness
-  const optimized: PracticeItem[] = [];
-  const remaining = [...session];
-  
-  while (remaining.length > 0) {
-    // Alternate between different types when possible
-    const nextType = getNextOptimalType(optimized);
-    const nextItem = remaining.find(item => item.type === nextType) || remaining[0];
-    
-    optimized.push(nextItem);
-    remaining.splice(remaining.indexOf(nextItem), 1);
-  }
-  
-  return optimized;
-};
-
-const getNextOptimalType = (completed: PracticeItem[]): PracticeItemType => {
-  if (completed.length === 0) return 'review';
-  
-  const lastType = completed[completed.length - 1].type;
-  const lastTwoTypes = completed.slice(-2).map(item => item.type);
-  
-  // Avoid too many of the same type in a row
-  if (lastTwoTypes.every(type => type === 'review')) return 'new';
-  if (lastTwoTypes.every(type => type === 'new')) return 'review';
-  
-  // Default progression
-  switch (lastType) {
-    case 'review': return 'new';
-    case 'new': return 'reinforcement';
-    case 'reinforcement': return 'review';
-    default: return 'review';
-  }
+  // Good balance: 60-80% reviews, rest new/reinforcement
+  const reviewRatio = reviewCount / totalItems;
+  return reviewRatio >= 0.6 && reviewRatio <= 0.8;
 };
 
 // SM-2 Algorithm for spaced repetition
@@ -611,6 +533,13 @@ export const usePracticeStore = create<PracticeState>()(
           sessionCompleted: true,
           sessionResults: results,
         });
+        
+        // Auto-navigate back to menu after 5 seconds
+        setTimeout(() => {
+          if (typeof window !== 'undefined' && window.location.pathname === '/practice') {
+            window.location.href = '/';
+          }
+        }, 5000);
       },
 
       resetSession: () => {
