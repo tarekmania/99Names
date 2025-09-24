@@ -24,7 +24,8 @@ import {
   Settings,
   TrendingUp,
   Flame,
-  BookOpen
+  BookOpen,
+  Star
 } from 'lucide-react';
 
 const Practice = () => {
@@ -440,39 +441,139 @@ const Practice = () => {
         ) : (
           <div className="space-y-6">
             {/* Progress Overview */}
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <TrendingUp className="w-5 h-5 text-primary" />
-                  Your Learning Progress
+            <Card className="overflow-hidden">
+              <CardHeader className="bg-gradient-primary text-primary-foreground">
+                <CardTitle className="flex items-center gap-2 text-xl">
+                  <TrendingUp className="w-6 h-6" />
+                  Your Learning Journey
                 </CardTitle>
+                <p className="text-primary-foreground/90">
+                  {stats.masteredNames > 0 
+                    ? `Amazing progress! You've mastered ${stats.masteredNames} of Allah's Beautiful Names.`
+                    : "Begin your journey of learning Allah's Beautiful Names."
+                  }
+                </p>
               </CardHeader>
-              <CardContent>
-                <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-4">
-                  <div className="text-center">
-                    <div className="text-2xl font-bold text-primary">{stats.totalNames}</div>
-                    <div className="text-sm text-muted-foreground">Total Names</div>
+              <CardContent className="pt-6">
+                {/* Overall Progress */}
+                <div className="mb-6">
+                  <div className="flex justify-between items-center mb-2">
+                    <span className="font-semibold">Overall Progress</span>
+                    <span className="text-2xl font-bold text-primary">
+                      {Math.round(((stats.masteredNames + stats.learningNames) / stats.totalNames) * 100)}%
+                    </span>
                   </div>
-                  <div className="text-center">
+                  <div className="w-full bg-muted rounded-full h-3 mb-1">
+                    <div 
+                      className="bg-gradient-primary h-3 rounded-full transition-all duration-500 animate-fade-in"
+                      style={{ 
+                        width: `${Math.round(((stats.masteredNames + stats.learningNames) / stats.totalNames) * 100)}%` 
+                      }}
+                    ></div>
+                  </div>
+                  <p className="text-sm text-muted-foreground">
+                    {stats.masteredNames + stats.learningNames} of {stats.totalNames} names learned
+                  </p>
+                </div>
+
+                {/* Detailed Stats */}
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+                  <div className="text-center p-4 bg-green-50 rounded-xl border border-green-100 hover-scale">
+                    <div className="w-12 h-12 bg-green-500 rounded-full flex items-center justify-center mx-auto mb-2">
+                      <Trophy className="w-6 h-6 text-white" />
+                    </div>
                     <div className="text-2xl font-bold text-green-600">{stats.masteredNames}</div>
-                    <div className="text-sm text-muted-foreground">Mastered</div>
+                    <div className="text-sm font-medium text-green-700">Mastered</div>
+                    <div className="text-xs text-green-600 mt-1">
+                      {stats.masteredNames > 0 ? "🎉 Excellence!" : "Start your journey"}
+                    </div>
                   </div>
-                  <div className="text-center">
+                  
+                  <div className="text-center p-4 bg-blue-50 rounded-xl border border-blue-100 hover-scale">
+                    <div className="w-12 h-12 bg-blue-500 rounded-full flex items-center justify-center mx-auto mb-2">
+                      <BookOpen className="w-6 h-6 text-white" />
+                    </div>
                     <div className="text-2xl font-bold text-blue-600">{stats.learningNames}</div>
-                    <div className="text-sm text-muted-foreground">Learning</div>
+                    <div className="text-sm font-medium text-blue-700">Learning</div>
+                    <div className="text-xs text-blue-600 mt-1">
+                      {stats.learningNames > 0 ? "📚 In progress" : "Ready to learn"}
+                    </div>
                   </div>
-                  <div className="text-center">
-                    <div className="text-2xl font-bold text-gray-600">{stats.newNames}</div>
-                    <div className="text-sm text-muted-foreground">New</div>
+                  
+                  <div className="text-center p-4 bg-orange-50 rounded-xl border border-orange-100 hover-scale">
+                    <div className="w-12 h-12 bg-orange-500 rounded-full flex items-center justify-center mx-auto mb-2">
+                      <Target className="w-6 h-6 text-white" />
+                    </div>
+                    <div className="text-2xl font-bold text-orange-600">{stats.dueForReview}</div>
+                    <div className="text-sm font-medium text-orange-700">Due Today</div>
+                    <div className="text-xs text-orange-600 mt-1">
+                      {stats.dueForReview > 0 ? "⏰ Ready to review" : "All caught up!"}
+                    </div>
+                  </div>
+                  
+                  <div className="text-center p-4 bg-purple-50 rounded-xl border border-purple-100 hover-scale">
+                    <div className="w-12 h-12 bg-purple-500 rounded-full flex items-center justify-center mx-auto mb-2">
+                      <Flame className="w-6 h-6 text-white" />
+                    </div>
+                    <div className="text-2xl font-bold text-purple-600">{stats.newNames}</div>
+                    <div className="text-sm font-medium text-purple-700">New Names</div>
+                    <div className="text-xs text-purple-600 mt-1">
+                      {stats.newNames > 0 ? "🌟 Awaiting discovery" : "All explored!"}
+                    </div>
                   </div>
                 </div>
-                
-                <div className="space-y-2">
-                  <div className="flex justify-between text-sm">
-                    <span>Overall Progress</span>
-                    <span>{Math.round((stats.masteredNames / stats.totalNames) * 100)}%</span>
+
+                {/* Achievements */}
+                {(stats.masteredNames > 0 || stats.learningNames > 0) && (
+                  <div className="bg-gradient-subtle rounded-xl p-4 animate-fade-in">
+                    <h4 className="font-semibold mb-3 flex items-center gap-2">
+                      <Star className="w-4 h-4 text-yellow-500" />
+                      Recent Achievements
+                    </h4>
+                    <div className="flex flex-wrap gap-2">
+                      {stats.masteredNames >= 1 && (
+                        <Badge className="bg-green-100 text-green-700 border-green-200">
+                          🎯 First Name Mastered
+                        </Badge>
+                      )}
+                      {stats.masteredNames >= 5 && (
+                        <Badge className="bg-blue-100 text-blue-700 border-blue-200">
+                          📚 Scholar in Progress
+                        </Badge>
+                      )}
+                      {stats.masteredNames >= 10 && (
+                        <Badge className="bg-purple-100 text-purple-700 border-purple-200">
+                          🏆 Dedicated Learner
+                        </Badge>
+                      )}
+                      {stats.learningNames >= 20 && (
+                        <Badge className="bg-orange-100 text-orange-700 border-orange-200">
+                          🌟 Knowledge Seeker
+                        </Badge>
+                      )}
+                      {stats.masteredNames + stats.learningNames >= stats.totalNames / 2 && (
+                        <Badge className="bg-gradient-primary text-primary-foreground">
+                          🚀 Halfway Champion
+                        </Badge>
+                      )}
+                    </div>
                   </div>
-                  <Progress value={(stats.masteredNames / stats.totalNames) * 100} className="h-2" />
+                )}
+
+                {/* Motivational Message */}
+                <div className="text-center mt-6 p-4 bg-gradient-accent rounded-xl">
+                  <p className="text-accent-foreground font-medium">
+                    {stats.masteredNames === 0 
+                      ? "🌱 Every master was once a beginner. Start your first session today!"
+                      : stats.masteredNames < 10
+                      ? `🔥 You're building momentum! ${stats.masteredNames} down, ${stats.totalNames - stats.masteredNames} to go!`
+                      : stats.masteredNames < 50
+                      ? `✨ Incredible dedication! You're ${Math.round((stats.masteredNames / stats.totalNames) * 100)}% of the way there!`
+                      : stats.masteredNames < 90
+                      ? `🏆 You're in the final stretch! Only ${stats.totalNames - stats.masteredNames} names left to master!`
+                      : `🎉 Amazing! You've nearly mastered all of Allah's Beautiful Names!`
+                    }
+                  </p>
                 </div>
               </CardContent>
             </Card>
