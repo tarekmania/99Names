@@ -205,12 +205,47 @@ const generateOptimalSession = async (
 const getSpacedRepetitionItems = async () => {
   try {
     const { openDB } = await import('idb');
-    const spacedRepDB = await openDB('SpacedRepetitionDB', 1);
+    const spacedRepDB = await openDB('SpacedRepetitionDB', 1, {
+      upgrade(db) {
+        if (!db.objectStoreNames.contains('items')) {
+          db.createObjectStore('items', { keyPath: 'nameId' });
+        }
+      },
+    });
+    
+    // Ensure the object store exists before trying to access it
+    if (!spacedRepDB.objectStoreNames.contains('items')) {
+      console.warn('Items object store not found, returning empty array');
+      return [];
+    }
+    
     return await spacedRepDB.getAll('items') || [];
   } catch (error) {
     console.warn('Failed to load spaced repetition items:', error);
     return [];
   }
+};
+
+// Fallback session creation for when smart generation fails
+const createFallbackSession = (allNames: DivineName[], targetDuration: number): PracticeItem[] => {
+  const maxItems = Math.min(10, Math.floor(targetDuration / 60)); // Simpler calculation for fallback
+  const session: PracticeItem[] = [];
+  
+  // Just create a simple session with the first few names
+  for (let i = 0; i < Math.min(maxItems, allNames.length); i++) {
+    const name = allNames[i];
+    session.push({
+      id: `fallback-${name.id}-${Date.now()}-${i}`,
+      type: 'new',
+      nameId: name.id,
+      name,
+      priority: 5,
+      estimatedTime: 60,
+      difficulty: 'easy',
+    });
+  }
+  
+  return session;
 };
 
 // Helper function to determine if session is well-balanced
@@ -306,16 +341,44 @@ export const usePracticeStore = create<PracticeState>()(
         
         try {
           const session = await generateOptimalSession(allNames, targetDuration);
-          set({ 
-            currentSession: session, 
-            currentIndex: 0,
-            sessionCompleted: false,
-            sessionResults: null,
-            loading: false 
-          });
+          
+          // If session is empty, create a fallback session
+          if (session.length === 0 && allNames.length > 0) {
+            console.warn('Smart session generation returned empty, creating fallback session');
+            const fallbackSession = createFallbackSession(allNames, targetDuration);
+            set({ 
+              currentSession: fallbackSession, 
+              currentIndex: 0,
+              sessionCompleted: false,
+              sessionResults: null,
+              loading: false 
+            });
+          } else {
+            set({ 
+              currentSession: session, 
+              currentIndex: 0,
+              sessionCompleted: false,
+              sessionResults: null,
+              loading: false 
+            });
+          }
         } catch (error) {
           console.error('Failed to generate session:', error);
-          set({ loading: false });
+          
+          // Create fallback session on error
+          if (allNames.length > 0) {
+            console.log('Creating fallback session due to error');
+            const fallbackSession = createFallbackSession(allNames, targetDuration);
+            set({ 
+              currentSession: fallbackSession, 
+              currentIndex: 0,
+              sessionCompleted: false,
+              sessionResults: null,
+              loading: false 
+            });
+          } else {
+            set({ loading: false });
+          }
         }
       },
 

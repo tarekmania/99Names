@@ -98,13 +98,26 @@ const Practice = () => {
         setStats(newStats);
       } catch (error) {
         console.warn('Failed to load practice stats:', error);
+        // Use fallback stats instead of crashing
+        setStats({
+          totalNames: allNames.length || 99,
+          masteredNames: 0,
+          learningNames: 0,
+          newNames: allNames.length || 99,
+          dueForReview: 0,
+          currentStreak: 0,
+          bestStreak: 0,
+          totalSessions: 0,
+          averageAccuracy: 0,
+          totalPracticeTime: 0,
+        });
       }
     };
     
-    if (!loading) {
+    if (!loading && allNames.length > 0) {
       loadStats();
     }
-  }, [loading, getStats, sessionCompleted]);
+  }, [loading, allNames.length, sessionCompleted, getStats]);
 
   // Clear feedback after delay
   useEffect(() => {
@@ -115,16 +128,32 @@ const Practice = () => {
   }, [wrongInput, clearFeedback]);
 
   const handleStartPractice = async () => {
-    if (settings.bismillahReminder) {
-      setShowBismillahReminder(true);
-    } else {
-      await startPracticeSession();
+    try {
+      if (settings.bismillahReminder) {
+        setShowBismillahReminder(true);
+      } else {
+        await startPracticeSession();
+      }
+    } catch (error) {
+      console.error('Failed to start practice:', error);
+      setStatusMessage({ 
+        type: 'error', 
+        text: 'Failed to start practice session. Please try again.' 
+      });
     }
   };
 
   const startPracticeSession = async () => {
-    await generateSmartSession(sessionDuration * 60); // Convert to seconds
-    startSession();
+    try {
+      await generateSmartSession(sessionDuration * 60); // Convert to seconds
+      startSession();
+    } catch (error) {
+      console.error('Failed to generate practice session:', error);
+      setStatusMessage({ 
+        type: 'error', 
+        text: 'Unable to create practice session. Please check your connection and try again.' 
+      });
+    }
   };
 
   const handleBismillahStart = async () => {
