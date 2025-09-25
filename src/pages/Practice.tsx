@@ -7,7 +7,9 @@ import { Progress } from '@/components/ui/progress';
 import { Badge } from '@/components/ui/badge';
 import { StatusMessage } from '@/components/StatusMessage';
 import { BismillahReminder } from '@/components/BismillahReminder';
+import { SpacedRepetitionProgress } from '@/components/SpacedRepetitionProgress';
 import { usePracticeStore, type PracticeStats } from '@/store/practice';
+import { useSpacedRepetitionStore } from '@/store/spacedRepetition';
 import { useSettings } from '@/hooks/useSettings';
 import { useAudio } from '@/hooks/useAudio';
 import { useHaptics } from '@/hooks/useHaptics';
@@ -56,6 +58,9 @@ const Practice = () => {
     getCurrentItem,
   } = usePracticeStore();
 
+  // Initialize spaced repetition store
+  const spacedRepetitionStore = useSpacedRepetitionStore();
+
   const { settings } = useSettings();
   const { playSound } = useAudio();
   const { success: vibrateSuccess, error: vibrateError } = useHaptics();
@@ -82,7 +87,8 @@ const Practice = () => {
   // Initialize practice on component mount
   useEffect(() => {
     initializePractice();
-  }, [initializePractice]);
+    spacedRepetitionStore.initializeItems();
+  }, [initializePractice, spacedRepetitionStore]);
 
   // Load stats when component mounts and when session changes
   useEffect(() => {
@@ -632,6 +638,9 @@ const Practice = () => {
                 </div>
               </CardContent>
             </Card>
+
+            {/* Spaced Repetition Progress */}
+            <SpacedRepetitionProgress />
 
             {/* Session Customization */}
             <Card>
