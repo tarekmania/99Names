@@ -6,6 +6,7 @@ import { matchesName } from '@/utils/match';
 import { db } from '@/utils/db';
 import { fetchDivineNames } from '@/services/divineNamesApi';
 import { supabase } from '@/integrations/supabase/client';
+import { spacedRepetitionDB, type SpacedRepetitionItem } from '@/utils/spacedRepetitionDB';
 
 // Unified practice item types
 export type PracticeItemType = 'review' | 'new' | 'reinforcement' | 'challenge';
@@ -133,7 +134,7 @@ const generateOptimalSession = async (
         interval: item.interval,
         easeFactor: item.easeFactor,
         consecutiveCorrect: item.consecutiveCorrect,
-        lastReviewed: new Date(item.lastReviewed),
+        lastReviewed: new Date(item.lastReview || 0),
         nextReview: new Date(item.nextReview),
       });
     }
@@ -184,7 +185,7 @@ const generateOptimalSession = async (
           interval: item.interval,
           easeFactor: item.easeFactor,
           consecutiveCorrect: item.consecutiveCorrect,
-          lastReviewed: new Date(item.lastReviewed),
+          lastReviewed: new Date(item.lastReview || 0),
           nextReview: new Date(item.nextReview),
         });
       }
@@ -202,26 +203,11 @@ const generateOptimalSession = async (
 };
 
 // Helper functions
-const getSpacedRepetitionItems = async () => {
+const getSpacedRepetitionItems = async (): Promise<SpacedRepetitionItem[]> => {
   try {
-    const { openDB } = await import('idb');
-    const spacedRepDB = await openDB('SpacedRepetitionDB', 1, {
-      upgrade(db) {
-        if (!db.objectStoreNames.contains('items')) {
-          db.createObjectStore('items', { keyPath: 'nameId' });
-        }
-      },
-    });
-    
-    // Ensure the object store exists before trying to access it
-    if (!spacedRepDB.objectStoreNames.contains('items')) {
-      console.warn('Items object store not found, returning empty array');
-      return [];
-    }
-    
-    return await spacedRepDB.getAll('items') || [];
+    return await spacedRepetitionDB.loadItems();
   } catch (error) {
-    console.warn('Failed to load spaced repetition items:', error);
+    console.warn('Failed to load spaced repetition data:', error);    
     return [];
   }
 };
@@ -401,20 +387,9 @@ export const usePracticeStore = create<PracticeState>()(
         
         if (!currentItem || !input.trim()) return false;
         
-        // Debug logging to identify matching issues
-        console.log('🔍 Name Matching Debug:', {
-          input: input.trim(),
-          targetName: currentItem.name.englishName,
-          targetAliases: currentItem.name.aliases,
-          nameId: currentItem.nameId
-        });
-        
         const isCorrect = matchesName(input.trim(), currentItem.name);
         
-        console.log('✅ Match Result:', isCorrect);
-        
         if (isCorrect) {
-          console.log('🎉 Correct match found!');
           set({ 
             input: '', 
             wrongInput: false,
@@ -423,7 +398,6 @@ export const usePracticeStore = create<PracticeState>()(
           });
           return true;
         } else {
-          console.log('❌ No match found');
           set({ wrongInput: true });
           return false;
         }
@@ -448,25 +422,20 @@ export const usePracticeStore = create<PracticeState>()(
         if (currentItem.type === 'review' || currentItem.type === 'reinforcement') {
           const updatedItem = updateSpacedRepetition(currentItem, quality);
           
-          // Save to local database
+          // Save to local database using centralized manager
           try {
-            const { openDB } = await import('idb');
-            const spacedRepDB = await openDB('SpacedRepetitionDB', 1, {
-              upgrade(db) {
-                if (!db.objectStoreNames.contains('items')) {
-                  db.createObjectStore('items', { keyPath: 'nameId' });
-                }
-              },
-            });
-            
-            await spacedRepDB.put('items', {
+            const spacedRepItem: SpacedRepetitionItem = {
               nameId: updatedItem.nameId,
-              interval: updatedItem.interval,
-              easeFactor: updatedItem.easeFactor,
-              consecutiveCorrect: updatedItem.consecutiveCorrect,
-              lastReviewed: updatedItem.lastReviewed,
-              nextReview: updatedItem.nextReview,
-            });
+              interval: updatedItem.interval || 1,
+              repetition: updatedItem.consecutiveCorrect || 0,
+              easeFactor: updatedItem.easeFactor || 2.5,
+              consecutiveCorrect: updatedItem.consecutiveCorrect || 0,
+              lastReview: updatedItem.lastReviewed || new Date(),
+              nextReview: updatedItem.nextReview || new Date(),
+              stage: 'learning',
+            };
+            
+            await spacedRepetitionDB.saveItems([spacedRepItem]);
           } catch (error) {
             console.warn('Failed to save spaced repetition data:', error);
           }
@@ -494,29 +463,42 @@ export const usePracticeStore = create<PracticeState>()(
         
         // For new items, add to spaced repetition system
         if (currentItem.type === 'new') {
-          const newSpacedRepItem = {
+          const newSpacedRepItem: SpacedRepetitionItem = {
             nameId: currentItem.nameId,
             interval: quality >= 3 ? 1 : 0,
+            repetition: quality >= 3 ? 1 : 0,
             easeFactor: 2.5,
             consecutiveCorrect: quality >= 3 ? 1 : 0,
-            lastReviewed: new Date(),
+            lastReview: new Date(),
             nextReview: new Date(Date.now() + (quality >= 3 ? 24 * 60 * 60 * 1000 : 60 * 60 * 1000)),
+            stage: quality >= 3 ? 'learning' : 'new',
           };
           
-          // Save to local database
+          // Save to local database using centralized manager
           try {
-            const { openDB } = await import('idb');
-            const spacedRepDB = await openDB('SpacedRepetitionDB', 1, {
-              upgrade(db) {
-                if (!db.objectStoreNames.contains('items')) {
-                  db.createObjectStore('items', { keyPath: 'nameId' });
-                }
-              },
-            });
-            
-            await spacedRepDB.put('items', newSpacedRepItem);
+            await spacedRepetitionDB.saveItems([newSpacedRepItem]);
           } catch (error) {
             console.warn('Failed to save new spaced repetition item:', error);
+          }
+          
+          // Save to Supabase if user is authenticated
+          try {
+            const { data: { user } } = await supabase.auth.getUser();
+            if (user) {
+              await supabase.from('spaced_repetition_items').upsert({
+                user_id: user.id,
+                name_id: newSpacedRepItem.nameId,
+                interval_days: newSpacedRepItem.interval,
+                ease_factor: newSpacedRepItem.easeFactor,
+                consecutive_correct: newSpacedRepItem.consecutiveCorrect,
+                last_reviewed: newSpacedRepItem.lastReview?.toISOString(),
+                next_review: newSpacedRepItem.nextReview.toISOString(),
+              }, {
+                onConflict: 'user_id,name_id'
+              });
+            }
+          } catch (error) {
+            console.warn('Failed to sync new spaced repetition item to cloud:', error);
           }
         }
         
@@ -564,36 +546,26 @@ export const usePracticeStore = create<PracticeState>()(
           itemsReviewed: currentSession.filter(item => item.type === 'review' || item.type === 'reinforcement').length,
           itemsLearned: currentSession.filter(item => item.type === 'new').length,
           itemsMastered: 0, // Calculate based on quality ratings
-          streakMaintained: true, // Calculate based on daily completion
+          streakMaintained: true,
         };
         
-        // Save session result
+        // Save session results
         try {
           await db.saveGameResult({
             timestamp: results.timestamp,
             found: results.correctAnswers,
             durationMs: results.sessionDuration,
-            completed: true,
+            difficulty: 'normal',
+            score: results.correctAnswers * 100,
+            mode: 'practice',
           });
-          
-          // Save to Supabase if authenticated
-          const { data: { user } } = await supabase.auth.getUser();
-          if (user) {
-            await supabase.from('game_results').insert({
-              user_id: user.id,
-              timestamp: results.timestamp,
-              found_count: results.correctAnswers,
-              duration_ms: results.sessionDuration,
-              completed: true,
-            });
-          }
         } catch (error) {
           console.warn('Failed to save session results:', error);
         }
         
         set({
-          sessionActive: false,
           sessionCompleted: true,
+          sessionActive: false,
           sessionResults: results,
         });
       },
@@ -604,19 +576,18 @@ export const usePracticeStore = create<PracticeState>()(
           currentIndex: 0,
           sessionActive: false,
           sessionCompleted: false,
-          sessionStartTime: 0,
+          sessionResults: null,
           showAnswer: false,
           selectedQuality: null,
           answerRevealed: false,
           input: '',
           wrongInput: false,
-          sessionResults: null,
           isLoading: false,
         });
       },
 
       setInput: (input: string) => {
-        set({ input });
+        set({ input, wrongInput: false });
       },
 
       clearFeedback: () => {
@@ -624,53 +595,48 @@ export const usePracticeStore = create<PracticeState>()(
       },
 
       getStats: async (): Promise<PracticeStats> => {
-        const { allNames } = get();
-        
         try {
-          // Get spaced repetition data for real statistics
-          const spacedRepItems = await getSpacedRepetitionItems();
+          const spacedRepItems = await spacedRepetitionDB.loadItems();
           const now = new Date();
           
-          // Calculate real statistics
-          const totalNames = allNames.length;
-          const learningNames = spacedRepItems.length;
+          const dueForReview = spacedRepItems.filter(item => {
+            try {
+              const nextReview = typeof item.nextReview === 'string' ? new Date(item.nextReview) : item.nextReview;
+              return nextReview <= now;
+            } catch (error) {
+              return false;
+            }
+          }).length;
           
-          // Mastered = items with 5+ consecutive correct answers
           const masteredNames = spacedRepItems.filter(item => 
-            (item.consecutiveCorrect || 0) >= 5
+            item.stage === 'mature' && item.consecutiveCorrect >= 5
           ).length;
           
-          // Due for review = items with nextReview <= now
-          const dueForReview = spacedRepItems.filter(item => 
-            item.nextReview && new Date(item.nextReview) <= now
+          const learningNames = spacedRepItems.filter(item => 
+            item.stage === 'learning' || item.stage === 'young'
           ).length;
           
-          // New names = total - learning
-          const newNames = totalNames - learningNames;
-          
-          // Learning names = learning but not mastered
-          const actualLearningNames = learningNames - masteredNames;
+          const newNames = Math.max(0, NAMES.length - spacedRepItems.length);
           
           return {
-            totalNames,
+            totalNames: NAMES.length,
             masteredNames,
-            learningNames: actualLearningNames,
+            learningNames,
             newNames,
             dueForReview,
-            currentStreak: 0, // TODO: Implement practice streak calculation
-            bestStreak: 0, // TODO: Implement best practice streak
-            totalSessions: 0, // TODO: Implement session counting
-            averageAccuracy: 0, // TODO: Implement accuracy calculation
-            totalPracticeTime: 0, // TODO: Implement time tracking
+            currentStreak: 0, // Will implement streak tracking later
+            bestStreak: 0,
+            totalSessions: 0,
+            averageAccuracy: 0,
+            totalPracticeTime: 0,
           };
         } catch (error) {
-          console.warn('Failed to calculate practice stats:', error);
-          // Fallback to basic stats
+          console.error('Failed to get practice stats:', error);
           return {
-            totalNames: allNames.length,
+            totalNames: NAMES.length,
             masteredNames: 0,
             learningNames: 0,
-            newNames: allNames.length,
+            newNames: NAMES.length,
             dueForReview: 0,
             currentStreak: 0,
             bestStreak: 0,
@@ -689,7 +655,11 @@ export const usePracticeStore = create<PracticeState>()(
     {
       name: 'practice-storage',
       partialize: (state) => ({
+        sessionActive: state.sessionActive,
         sessionCompleted: state.sessionCompleted,
+        sessionStartTime: state.sessionStartTime,
+        currentSession: state.currentSession,
+        currentIndex: state.currentIndex,
         sessionResults: state.sessionResults,
       }),
     }
